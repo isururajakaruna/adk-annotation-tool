@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Bot, RefreshCw, Settings, Download } from "lucide-react";
+import { Bot, RefreshCw, Settings } from "lucide-react";
 import { useSavedConversations } from "@/contexts/SavedConversationsContext";
 import SaveConversationButton from "@/components/conversations/SaveConversationButton";
 import { AgentSettingsModal } from "./AgentSettingsModal";
-import { useToast } from "@/contexts/ToastContext";
 
 interface HeaderProps {
   sessionId?: string | null;
@@ -17,9 +16,7 @@ interface HeaderProps {
 export default function Header({ sessionId, adkSessionId, getInvocationsForSave, onNewChat }: HeaderProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [agentConfig, setAgentConfig] = useState<any>(null);
-  const [isExporting, setIsExporting] = useState(false);
   const { currentView } = useSavedConversations();
-  const { showToast } = useToast();
   
   // Load agent configuration
   useEffect(() => {
@@ -35,66 +32,6 @@ export default function Header({ sessionId, adkSessionId, getInvocationsForSave,
       }
     } catch (error) {
       console.error("Failed to load agent config:", error);
-    }
-  };
-
-  const handleExportCurrentChat = async () => {
-    if (!getInvocationsForSave || !sessionId) {
-      showToast("error", "No active conversation to export");
-      return;
-    }
-
-    const invocations = getInvocationsForSave();
-    if (invocations.length === 0) {
-      showToast("error", "No messages to export");
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      // Save to temporary location
-      const saveResponse = await fetch("/api/conversations/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId: sessionId, invocations }),
-      });
-
-      if (!saveResponse.ok) throw new Error("Failed to save conversation");
-
-      // Export as evalset
-      const exportResponse = await fetch("/api/conversations/export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationIds: [sessionId] }),
-      });
-
-      if (!exportResponse.ok) throw new Error("Failed to export conversation");
-
-      const result = await exportResponse.json();
-
-      if (result.success) {
-        // Download as JSON
-        const blob = new Blob([JSON.stringify(result.evalset, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${result.evalset.name}.evalset.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        showToast("success", `Exported ${result.count} invocation(s) as evalset`);
-      } else {
-        throw new Error(result.error || "Export failed");
-      }
-    } catch (error) {
-      console.error("Export error:", error);
-      showToast("error", "Failed to export conversation");
-    } finally {
-      setIsExporting(false);
     }
   };
   
@@ -164,28 +101,6 @@ export default function Header({ sessionId, adkSessionId, getInvocationsForSave,
           {/* Save button (only show in chat view with active session) */}
           {currentView === 'chat' && sessionId && getInvocationsForSave && (
             <SaveConversationButton conversationId={sessionId} getInvocationsForSave={getInvocationsForSave} />
-          )}
-
-          {/* Export as Evalset button (only show in chat view with active session) */}
-          {currentView === 'chat' && sessionId && getInvocationsForSave && (
-            <button
-              onClick={handleExportCurrentChat}
-              disabled={isExporting}
-              className="flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium"
-              title="Export current conversation as ADK evalset"
-            >
-              {isExporting ? (
-                <>
-                  <Download className="w-4 h-4 animate-spin" />
-                  <span className="hidden sm:inline">Exporting...</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  <span className="hidden sm:inline">Export</span>
-                </>
-              )}
-            </button>
           )}
           
           {/* Settings button (only show in chat view) */}
