@@ -46,23 +46,75 @@ export class AgentEngineClient {
   }
 
   /**
+   * Create a session using ADK's async_create_session method
+   * Returns the session ID (not the full path)
+   */
+  async createSession(userId: string): Promise<string> {
+    const token = await this.getAuthToken();
+    const agentResourceName = `projects/${this.config.projectId}/locations/${this.config.location}/reasoningEngines/${this.config.resourceId}`;
+    const queryEndpoint = `https://${this.config.location}-aiplatform.googleapis.com/v1/${agentResourceName}:query`;
+    
+    console.log(`[AgentEngineClient] 🆕 Creating ADK session for user: ${userId}`);
+    
+    const payload = {
+      class_method: "async_create_session",
+      input: {
+        user_id: userId,
+      },
+    };
+    
+    const response = await fetch(queryEndpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[AgentEngineClient] Failed to create session:`, errorText);
+      throw new Error(`Failed to create session: ${errorText}`);
+    }
+    
+    const sessionData = await response.json();
+    console.log(`[AgentEngineClient] ✅ Session created:`, sessionData);
+    
+    // Extract session ID from response: output.id
+    const sessionId = sessionData.output?.id;
+    if (!sessionId) {
+      throw new Error(`No session ID in response: ${JSON.stringify(sessionData)}`);
+    }
+    
+    console.log(`[AgentEngineClient] ✅ Session ID: ${sessionId}`);
+    return sessionId;
+  }
+
+  /**
    * Stream query to Agent Engine
    * Returns an async iterator of Agent Engine events
    */
-  async *streamQuery(message: string, userId: string = "default-user"): AsyncGenerator<AgentEngineEvent> {
-    console.log(`[AgentEngineClient] Starting stream query for message: "${message.substring(0, 100)}..."`);
+  async *streamQuery(message: string, sessionId: string, userId: string = "default-user"): AsyncGenerator<AgentEngineEvent> {
+    console.log(`[AgentEngineClient] ═══════════════════════════════════════════════════════`);
+    console.log(`[AgentEngineClient] 🔵 Starting stream query`);
+    console.log(`[AgentEngineClient] 📝 Message: "${message.substring(0, 100)}..."`);
+    console.log(`[AgentEngineClient] 👤 User ID: ${userId}`);
+    console.log(`[AgentEngineClient] 🆔 Session ID: ${sessionId}`);
+    console.log(`[AgentEngineClient] ═══════════════════════════════════════════════════════`);
     
     const token = await this.getAuthToken();
     
     const payload = {
-      class_method: "async_stream_query",
       input: {
         message,
         user_id: userId,
+        session_id: sessionId,
       },
+      class_method: "async_stream_query",
     };
 
-    console.log(`[AgentEngineClient] Payload:`, JSON.stringify(payload, null, 2));
+    console.log(`[AgentEngineClient] 📤 Full Payload:`, JSON.stringify(payload, null, 2));
 
     try {
       const response = await fetch(this.endpointUrl, {

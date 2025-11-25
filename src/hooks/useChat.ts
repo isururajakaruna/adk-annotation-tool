@@ -10,8 +10,10 @@ import { generateId } from "@/lib/utils";
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [adkSessionId, setAdkSessionId] = useState<string | null>(null);
   const [invocations, setInvocations] = useState<Invocation[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentMessageRef = useRef<Message | null>(null);
@@ -19,15 +21,69 @@ export function useChat() {
   const thinkingStartTimeRef = useRef<number | null>(null);
   const eventsRef = useRef<AgentEvent[]>([]); // Track events for timeline
 
-  // Generate session ID on mount
+  // Initialize session from backend on mount
   useEffect(() => {
     if (!sessionId) {
-      setSessionId(generateId());
+      // Try to restore session from localStorage first
+      const savedSessionId = localStorage.getItem("chatSessionId");
+      const savedAdkSessionId = localStorage.getItem("chatAdkSessionId");
+      if (savedSessionId && savedAdkSessionId) {
+        console.log(`[useChat] 🔄 Restoring session from localStorage:`);
+        console.log(`  Frontend ID: ${savedSessionId}`);
+        console.log(`  ADK Session: ${savedAdkSessionId}`);
+        setSessionId(savedSessionId);
+        setAdkSessionId(savedAdkSessionId);
+        setIsInitializing(false);
+        return;
+      }
+      
+      console.log("[useChat] 🆕 Creating new session from backend...");
+      
+      fetch("/api/chat/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.sessionId && data.adkSessionId) {
+            console.log(`[useChat] ✅ Session initialized:`);
+            console.log(`  Frontend ID: ${data.sessionId}`);
+            console.log(`  ADK Session: ${data.adkSessionId}`);
+            setSessionId(data.sessionId);
+            setAdkSessionId(data.adkSessionId);
+            // Save both IDs to localStorage for persistence across refreshes
+            localStorage.setItem("chatSessionId", data.sessionId);
+            localStorage.setItem("chatAdkSessionId", data.adkSessionId);
+          } else {
+            console.error("[useChat] Failed to get session IDs from backend");
+            // Fallback to local generation if backend fails
+            const fallbackId = generateId();
+            setSessionId(fallbackId);
+            localStorage.setItem("chatSessionId", fallbackId);
+          }
+          setIsInitializing(false);
+        })
+        .catch((error) => {
+          console.error("[useChat] Error initializing session:", error);
+          // Fallback to local generation if backend fails
+          const fallbackId = generateId();
+          setSessionId(fallbackId);
+          localStorage.setItem("chatSessionId", fallbackId);
+          setIsInitializing(false);
+        });
     }
   }, [sessionId]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
+
+    // Ensure we have a session ID before sending
+    if (!sessionId) {
+      console.error("[useChat] No session ID available yet");
+      return;
+    }
 
     console.log("[useChat] Sending message:", content);
     setIsLoading(true);
@@ -74,7 +130,6 @@ export function useChat() {
         },
         body: JSON.stringify({
           message: content,
-          userId: "user-1",
           sessionId: sessionId,
         }),
       });
@@ -310,21 +365,70 @@ export function useChat() {
       setError(err instanceof Error ? err.message : "Unknown error occurred");
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, [isLoading, sessionId]); // Added sessionId to dependency array
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     setError(null);
   }, []);
 
+  const startNewChat = useCallback(async () => {
+    console.log("[useChat] 🆕 Starting new chat...");
+    
+    // Set initializing state
+    setIsInitializing(true);
+    
+    // Clear current state
+    setMessages([]);
+    setInvocations([]);
+    setError(null);
+    eventsRef.current = [];
+    
+    try {
+      // Create new session from backend
+      const response = await fetch("/api/chat/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (data.sessionId && data.adkSessionId) {
+        console.log(`[useChat] ✅ New session created:`);
+        console.log(`  Frontend ID: ${data.sessionId}`);
+        console.log(`  ADK Session: ${data.adkSessionId}`);
+        setSessionId(data.sessionId);
+        setAdkSessionId(data.adkSessionId);
+        // Update localStorage with new sessions
+        localStorage.setItem("chatSessionId", data.sessionId);
+        localStorage.setItem("chatAdkSessionId", data.adkSessionId);
+      } else {
+        console.error("[useChat] Failed to create new session");
+      }
+    } catch (error) {
+      console.error("[useChat] Error creating new session:", error);
+      // Fallback to local generation
+      const fallbackId = generateId();
+      setSessionId(fallbackId);
+      localStorage.setItem("chatSessionId", fallbackId);
+    } finally {
+      setIsInitializing(false);
+    }
+  }, []);
+
   return {
     messages,
     isLoading,
+    isInitializing,
     error,
     sessionId,
+    adkSessionId,
     invocations,
     sendMessage,
     clearMessages,
+    startNewChat,
   };
 }
 

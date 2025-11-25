@@ -22,15 +22,42 @@ function getWebSocketServer(): WebSocketServer {
   return wss;
 }
 
+// Store mapping of frontend sessionId to ADK session ID
+const sessionMap = new Map<string, string>();
+
+/**
+ * Get or create an ADK session for the given frontend session ID
+ */
+async function getOrCreateAdkSession(frontendSessionId: string): Promise<string> {
+  // Check if we already have an ADK session for this frontend session
+  let adkSessionId = sessionMap.get(frontendSessionId);
+  
+  if (adkSessionId) {
+    console.log(`[API] Using existing ADK session: ${adkSessionId} for frontend session: ${frontendSessionId}`);
+    return adkSessionId;
+  }
+  
+  // Create a new ADK session
+  const agentClient = getAgentEngineClient();
+  adkSessionId = await agentClient.createSession(frontendSessionId);
+  
+  // Store the mapping
+  sessionMap.set(frontendSessionId, adkSessionId);
+  console.log(`[API] Created new ADK session: ${adkSessionId} for frontend session: ${frontendSessionId}`);
+  
+  return adkSessionId;
+}
+
 /**
  * Process Agent Engine events and convert to chat events
  */
 async function processAgentEngineStream(
   message: string,
-  userId: string,
+  sessionId: string,
   ws: WebSocket
 ) {
   console.log(`[WebSocket] Processing message: "${message.substring(0, 100)}..."`);
+  console.log(`[WebSocket] Using frontend session ID: ${sessionId}`);
   
   const agentClient = getAgentEngineClient();
   
@@ -41,11 +68,16 @@ async function processAgentEngineStream(
       timestamp: Date.now(),
     }));
 
+    // Get or create ADK session
+    const adkSessionId = await getOrCreateAdkSession(sessionId);
+    console.log(`[WebSocket] Using ADK session ID: ${adkSessionId}`);
+
     let currentMessageId = generateId();
     let accumulatedText = "";
     let currentToolCalls: ToolCall[] = [];
 
-    for await (const event of agentClient.streamQuery(message, userId)) {
+    // Pass both ADK session ID and user ID to maintain conversation context
+    for await (const event of agentClient.streamQuery(message, adkSessionId, sessionId)) {
       console.log("[WebSocket] Processing event from Agent Engine");
 
       // Check if event has content
@@ -165,10 +197,10 @@ function handleWebSocketMessage(ws: WebSocket, data: any) {
     switch (message.type) {
       case "user_message":
         const userMessage = message.payload?.message || "";
-        const userId = message.payload?.userId || "default-user";
+        const sessionId = message.payload?.sessionId || generateId();
         
         if (userMessage) {
-          processAgentEngineStream(userMessage, userId, ws);
+          processAgentEngineStream(userMessage, sessionId, ws);
         } else {
           ws.send(JSON.stringify({
             type: "error",
@@ -240,7 +272,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const message = body.message || "";
-    const userId = body.userId || "default-user";
     const sessionId = body.sessionId || generateId();
 
     if (!message) {
@@ -254,11 +285,11 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`[API] Processing message: "${message.substring(0, 100)}..."`);
-    console.log(`[API] Session ID: ${sessionId}`);
+    console.log(`[API] Session ID: ${sessionId} (used as Agent Engine user_id for context)`);
 
     // Initialize session logger
     const logger = getSessionLogger(sessionId);
-    logger.log('API_REQUEST', 'Received chat request', { message, userId, sessionId });
+    logger.log('API_REQUEST', 'Received chat request', { message, sessionId, note: 'sessionId is used as user_id for Agent Engine' });
 
     // Create a readable stream for SSE
     const encoder = new TextEncoder();
@@ -272,7 +303,11 @@ export async function POST(req: NextRequest) {
 
           logger.log('STREAM_START', 'Starting Agent Engine stream', { messageId });
 
-          for await (const rawEvent of agentClient.streamQuery(message, userId)) {
+          // Get or create ADK session for the frontend session
+          const adkSessionId = await getOrCreateAdkSession(sessionId);
+          console.log(`[API] ⚡ Using ADK session: ${adkSessionId} for frontend session: ${sessionId}`);
+          
+          for await (const rawEvent of agentClient.streamQuery(message, adkSessionId, sessionId)) {
             eventCounter++;
             logger.logAgentEngineRawEvent({ eventNumber: eventCounter, rawEvent });
             

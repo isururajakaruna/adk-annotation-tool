@@ -8,10 +8,12 @@ import { AgentSettingsModal } from "./AgentSettingsModal";
 
 interface HeaderProps {
   sessionId?: string | null;
+  adkSessionId?: string | null;
   invocations?: any[];
+  onNewChat?: () => void;
 }
 
-export default function Header({ sessionId, invocations = [] }: HeaderProps) {
+export default function Header({ sessionId, adkSessionId, invocations = [], onNewChat }: HeaderProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [agentConfig, setAgentConfig] = useState<any>(null);
   const { currentView } = useSavedConversations();
@@ -47,27 +49,28 @@ export default function Header({ sessionId, invocations = [] }: HeaderProps) {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {/* Refresh button (only show in chat view) */}
-          {currentView === 'chat' && (
+          {/* New Chat button (only show in chat view) */}
+          {currentView === 'chat' && onNewChat && (
             <button
-              onClick={() => window.location.reload()}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              onClick={onNewChat}
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
               title="Start new conversation"
             >
-              <RefreshCw className="w-4 h-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100" />
+              <RefreshCw className="w-4 h-4" />
+              <span className="hidden sm:inline">New Chat</span>
             </button>
           )}
           
-          {/* Session ID (only show in chat view with active session) */}
-          {currentView === 'chat' && sessionId && (
+          {/* ADK Session ID (only show in chat view with active session) */}
+          {currentView === 'chat' && adkSessionId && (
             <div className="flex items-center gap-2 text-xs bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg">
               <span className="text-gray-500 dark:text-gray-500 font-medium">Session ID:</span>
-              <span className="font-mono text-gray-600 dark:text-gray-400 hidden sm:inline">{sessionId}</span>
-              <span className="font-mono text-gray-600 dark:text-gray-400 inline sm:hidden">{sessionId.slice(0, 12)}...</span>
+              <span className="font-mono text-gray-600 dark:text-gray-400 hidden sm:inline">{adkSessionId}</span>
+              <span className="font-mono text-gray-600 dark:text-gray-400 inline sm:hidden">{adkSessionId.slice(0, 12)}...</span>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(sessionId);
-                  console.log('Session ID copied:', sessionId);
+                  navigator.clipboard.writeText(adkSessionId);
+                  console.log('ADK Session ID copied:', adkSessionId);
                 }}
                 className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                 title="Copy session ID"

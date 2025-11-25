@@ -11,11 +11,18 @@ import { SavedConversationView } from "@/components/conversations/SavedConversat
 function AppContent() {
   const { currentView, viewingConversationId } = useSavedConversations();
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [adkSessionId, setAdkSessionId] = useState<string | null>(null);
   const [invocations, setInvocations] = useState<any[]>([]);
+  const [newChatHandler, setNewChatHandler] = useState<(() => void) | null>(null);
 
-  const handleSessionUpdate = (newSessionId: string | null, newInvocations: any[]) => {
+  const handleSessionUpdate = (newSessionId: string | null, newAdkSessionId: string | null, newInvocations: any[]) => {
     setSessionId(newSessionId);
+    setAdkSessionId(newAdkSessionId);
     setInvocations(newInvocations);
+  };
+
+  const handleNewChatReady = (handler: () => void) => {
+    setNewChatHandler(() => handler);
   };
 
   // Determine what to render based on view
@@ -30,11 +37,21 @@ function AppContent() {
     }
     
     // Chat view
-    return <ChatInterface onSessionUpdate={handleSessionUpdate} />;
+    return (
+      <ChatInterface 
+        onSessionUpdate={handleSessionUpdate} 
+        onNewChatReady={handleNewChatReady}
+      />
+    );
   };
 
   return (
-    <MainLayout sessionId={currentView === 'chat' ? sessionId : null} invocations={invocations}>
+    <MainLayout 
+      sessionId={currentView === 'chat' ? sessionId : null}
+      adkSessionId={currentView === 'chat' ? adkSessionId : null}
+      invocations={invocations}
+      onNewChat={newChatHandler || undefined}
+    >
       {renderContent()}
     </MainLayout>
   );

@@ -92,8 +92,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               "prose-ol:my-2 prose-ol:list-decimal prose-ol:pl-4",
               "prose-li:my-1",
               "prose-strong:font-bold prose-strong:text-current",
-              "prose-code:bg-gray-100 prose-code:dark:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
-              "prose-pre:bg-gray-100 prose-pre:dark:bg-gray-800 prose-pre:p-3 prose-pre:rounded-lg prose-pre:overflow-x-auto",
+              "prose-code:bg-gray-100 prose-code:dark:bg-black prose-code:dark:text-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
+              "prose-pre:bg-gray-100 prose-pre:dark:bg-black prose-pre:dark:text-gray-100 prose-pre:p-3 prose-pre:rounded-lg prose-pre:overflow-x-auto",
               "prose-a:text-blue-600 prose-a:dark:text-blue-400 prose-a:underline prose-a:hover:text-blue-800",
               "prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:dark:border-gray-600 prose-blockquote:pl-4 prose-blockquote:italic",
               "prose-table:border-collapse prose-table:w-full",
@@ -111,11 +111,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                   h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2" {...props} />,
                   h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2" {...props} />,
                   h3: ({node, ...props}) => <h3 className="text-lg font-semibold mt-2 mb-1" {...props} />,
+                  pre: ({node, ...props}) => (
+                    <pre className="bg-gray-100 dark:bg-black dark:text-gray-100 p-3 rounded-lg overflow-x-auto my-2" {...props} />
+                  ),
                   code: ({node, inline, ...props}) => 
                     inline ? (
-                      <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" {...props} />
+                      <code className="bg-gray-100 dark:bg-black dark:text-gray-100 px-1 py-0.5 rounded text-sm font-mono" {...props} />
                     ) : (
-                      <code className="block bg-gray-100 dark:bg-gray-800 p-3 rounded-lg overflow-x-auto font-mono text-sm" {...props} />
+                      <code className="font-mono text-sm" {...props} />
                     ),
                   strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
                   em: ({node, ...props}) => <em className="italic" {...props} />,

@@ -9,24 +9,51 @@ import { AlertCircle } from "lucide-react";
 
 interface ChatInterfaceProps {
   onSessionUpdate?: (sessionId: string | null, invocations: any[]) => void;
+  onNewChatReady?: (newChatHandler: () => void) => void;
 }
 
-export function ChatInterface({ onSessionUpdate }: ChatInterfaceProps = {}) {
-  const { messages, isLoading, error, sessionId, invocations, sendMessage } = useChat();
+export function ChatInterface({ onSessionUpdate, onNewChatReady }: ChatInterfaceProps = {}) {
+  const { messages, isLoading, isInitializing, error, sessionId, adkSessionId, invocations, sendMessage, startNewChat } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationStarted = messages.length > 0 || isLoading;
 
   // Notify parent of session updates
   useEffect(() => {
     if (onSessionUpdate) {
-      onSessionUpdate(sessionId, invocations);
+      onSessionUpdate(sessionId, adkSessionId, invocations);
     }
-  }, [sessionId, invocations, onSessionUpdate]);
+  }, [sessionId, adkSessionId, invocations, onSessionUpdate]);
+
+  // Expose startNewChat to parent
+  useEffect(() => {
+    if (onNewChatReady && startNewChat) {
+      onNewChatReady(startNewChat);
+    }
+  }, [onNewChatReady, startNewChat]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // Show loading screen while initializing session
+  if (isInitializing) {
+    return (
+      <div className="flex flex-col h-full max-w-6xl mx-auto">
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
+              Initializing Session...
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Creating your conversation session with the agent
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full max-w-6xl mx-auto">
