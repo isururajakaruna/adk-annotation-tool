@@ -4,9 +4,9 @@
   "description": "ADK Annotation UI - Direct Agent Engine Communication",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 3001",
+    "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit"
   },
