@@ -62,6 +62,14 @@ export function AgentSettingsModal({ isOpen, onClose, onSaved }: AgentSettingsMo
         body: JSON.stringify({ agentId, projectId, location }),
       });
 
+      // Check content type before parsing
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("Non-JSON response:", text);
+        throw new Error("Server returned invalid response. Please restart the dev server.");
+      }
+
       const data = await response.json();
 
       if (response.ok) {
@@ -73,6 +81,7 @@ export function AgentSettingsModal({ isOpen, onClose, onSaved }: AgentSettingsMo
         });
       }
     } catch (error) {
+      console.error("Test connection error:", error);
       setTestResult({ 
         success: false, 
         message: error instanceof Error ? error.message : "Connection test failed" 
@@ -83,35 +92,69 @@ export function AgentSettingsModal({ isOpen, onClose, onSaved }: AgentSettingsMo
   };
 
   const saveConfig = async () => {
-    // Must test successfully first
-    if (!testResult?.success) {
-      setTestResult({ success: false, message: "Please test the connection first" });
+    if (!agentId || !projectId || !location) {
+      setTestResult({ success: false, message: "Please fill in all fields" });
       return;
     }
 
     setSaving(true);
+    setTestResult(null);
+
     try {
-      const response = await fetch("/api/agent-config", {
+      // First, test the connection
+      setTestResult({ success: true, message: "Testing connection..." });
+      
+      const testResponse = await fetch("/api/agent-config/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ agentId, projectId, location }),
       });
 
-      if (response.ok) {
-        onSaved?.();
-        onClose();
-        // Reload page to apply new configuration
-        window.location.reload();
+      // Check content type before parsing
+      const contentType = testResponse.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await testResponse.text();
+        console.error("Non-JSON response:", text);
+        throw new Error("Server returned invalid response. Please restart the dev server.");
+      }
+
+      const testData = await testResponse.json();
+
+      if (!testResponse.ok) {
+        setTestResult({ 
+          success: false, 
+          message: testData.details || testData.error || "Connection test failed" 
+        });
+        setSaving(false);
+        return;
+      }
+
+      // Test passed, now save
+      setTestResult({ success: true, message: "Connection successful! Saving..." });
+
+      const saveResponse = await fetch("/api/agent-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId, projectId, location }),
+      });
+
+      if (saveResponse.ok) {
+        setTestResult({ success: true, message: "Configuration saved! Reloading..." });
+        setTimeout(() => {
+          onSaved?.();
+          onClose();
+          window.location.reload();
+        }, 1000);
       } else {
-        const data = await response.json();
-        setTestResult({ success: false, message: data.error || "Failed to save configuration" });
+        const saveData = await saveResponse.json();
+        setTestResult({ success: false, message: saveData.error || "Failed to save configuration" });
+        setSaving(false);
       }
     } catch (error) {
       setTestResult({ 
         success: false, 
         message: error instanceof Error ? error.message : "Failed to save configuration" 
       });
-    } finally {
       setSaving(false);
     }
   };
@@ -148,24 +191,13 @@ export function AgentSettingsModal({ isOpen, onClose, onSaved }: AgentSettingsMo
           </div>
         ) : (
           <>
-            {/* Source indicator */}
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Current source:</span>
-              <span className={`font-semibold ${source === "file" ? "text-green-600" : "text-blue-600"}`}>
-                {source === "file" ? "📄 Config File" : "🔧 Environment Variables"}
-              </span>
-            </div>
-
             {/* Agent ID */}
             <div>
               <label className="block text-sm font-medium mb-2">Agent ID</label>
               <input
                 type="text"
                 value={agentId}
-                onChange={(e) => {
-                  setAgentId(e.target.value);
-                  setTestResult(null);
-                }}
+                onChange={(e) => setAgentId(e.target.value)}
                 placeholder="Enter Agent ID (Resource ID)"
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -177,10 +209,7 @@ export function AgentSettingsModal({ isOpen, onClose, onSaved }: AgentSettingsMo
               <input
                 type="text"
                 value={projectId}
-                onChange={(e) => {
-                  setProjectId(e.target.value);
-                  setTestResult(null);
-                }}
+                onChange={(e) => setProjectId(e.target.value)}
                 placeholder="Enter GCP Project ID"
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -189,20 +218,13 @@ export function AgentSettingsModal({ isOpen, onClose, onSaved }: AgentSettingsMo
             {/* Location */}
             <div>
               <label className="block text-sm font-medium mb-2">Location</label>
-              <select
+              <input
+                type="text"
                 value={location}
-                onChange={(e) => {
-                  setLocation(e.target.value);
-                  setTestResult(null);
-                }}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g., us-central1"
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="us-central1">us-central1</option>
-                <option value="us-east1">us-east1</option>
-                <option value="us-west1">us-west1</option>
-                <option value="europe-west1">europe-west1</option>
-                <option value="asia-southeast1">asia-southeast1</option>
-              </select>
+              />
             </div>
 
             {/* Test Result */}
@@ -221,14 +243,6 @@ export function AgentSettingsModal({ isOpen, onClose, onSaved }: AgentSettingsMo
               </div>
             )}
 
-            {/* Info box */}
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <div className="text-xs space-y-1">
-                <p>Configuration saved to <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">.agent-config.json</code></p>
-                <p>This overrides environment variables until deleted.</p>
-              </div>
-            </div>
 
             {/* Actions */}
             <div className="flex gap-2 pt-2">
@@ -250,13 +264,13 @@ export function AgentSettingsModal({ isOpen, onClose, onSaved }: AgentSettingsMo
 
               <Button
                 onClick={saveConfig}
-                disabled={saving || !testResult?.success}
+                disabled={saving || !agentId || !projectId}
                 className="flex-1"
               >
                 {saving ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {testResult?.success && testResult.message.includes("Testing") ? "Testing..." : "Saving..."}
                   </>
                 ) : (
                   "Save & Apply"
