@@ -5,7 +5,7 @@ import { useSavedConversations } from "@/contexts/SavedConversationsContext";
 import { useToast } from "@/contexts/ToastContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import SavedChatCard from "./SavedChatCard";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Download } from "lucide-react";
 
 export default function SavedChatsList() {
   const { savedConversations, fetchSavedConversations, setViewingConversation } = useSavedConversations();
@@ -15,6 +15,7 @@ export default function SavedChatsList() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isExportingAll, setIsExportingAll] = useState(false);
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -100,6 +101,50 @@ export default function SavedChatsList() {
     setDeleteConfirmId(null);
   };
 
+  const handleExportAllAsEvalset = async () => {
+    if (savedConversations.length === 0) {
+      showToast('error', 'No conversations to export');
+      return;
+    }
+
+    setIsExportingAll(true);
+    try {
+      const response = await fetch('/api/conversations/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationIds: [] }), // Empty array = export all
+      });
+
+      if (!response.ok) throw new Error('Failed to export conversations');
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Download as JSON
+        const blob = new Blob([JSON.stringify(result.evalset, null, 2)], {
+          type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${result.evalset.name}.evalset.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('success', `Exported ${result.count} conversation(s) as evalset`);
+      } else {
+        throw new Error(result.error || 'Export failed');
+      }
+    } catch (error) {
+      console.error('Export all error:', error);
+      showToast('error', 'Failed to export conversations');
+    } finally {
+      setIsExportingAll(false);
+    }
+  };
+
   return (
     <div className="h-full bg-gray-50 dark:bg-gray-900">
       {isLoading ? (
@@ -121,9 +166,9 @@ export default function SavedChatsList() {
             </p>
           </div>
 
-          {/* Search and Sort */}
-          <div className="mb-6 flex gap-4">
-            <div className="flex-1 relative">
+          {/* Search, Sort, and Export */}
+          <div className="mb-6 flex flex-wrap gap-4">
+            <div className="flex-1 relative min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
@@ -142,6 +187,25 @@ export default function SavedChatsList() {
               <option value="date-desc">Newest First</option>
               <option value="date-asc">Oldest First</option>
             </select>
+
+            <button
+              onClick={handleExportAllAsEvalset}
+              disabled={isExportingAll || savedConversations.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+              title="Export all conversations as ADK evalset format"
+            >
+              {isExportingAll ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Exporting...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Export All as Evalset</span>
+                </>
+              )}
+            </button>
           </div>
 
           {/* Empty State */}

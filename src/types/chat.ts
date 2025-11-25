@@ -15,6 +15,11 @@ export interface Message {
   thoughtSignature?: any;
   events?: AgentEvent[]; // NEW: Track all events in order
   rawEvent?: any; // Store raw event for modal display
+  // Inline annotations (always set for assistant messages)
+  _custom_rating?: number; // 1-5 stars rating
+  _custom_feedback?: string; // User comment/feedback
+  _custom_original_agent_message?: string; // ALWAYS store original agent response (populated for ALL assistant messages)
+  isEditing?: boolean; // UI state for inline editing
 }
 
 export interface AgentEvent {
@@ -66,7 +71,7 @@ export interface Invocation {
   timestamp: number;
   _custom_rating?: number;
   _custom_feedback?: string;
-  _custom_original?: string;
+  _custom_original_agent_message: string; // ALWAYS populated with original agent response
   tool_calls?: ToolCallRecord[];
 }
 

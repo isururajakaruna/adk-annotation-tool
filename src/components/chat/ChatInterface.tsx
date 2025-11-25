@@ -8,21 +8,21 @@ import { ThinkingIndicator } from "./ThinkingIndicator";
 import { AlertCircle } from "lucide-react";
 
 interface ChatInterfaceProps {
-  onSessionUpdate?: (sessionId: string | null, invocations: any[]) => void;
+  onSessionUpdate?: (sessionId: string | null, adkSessionId: string | null, getInvocationsForSave: () => any[]) => void;
   onNewChatReady?: (newChatHandler: () => void) => void;
 }
 
 export function ChatInterface({ onSessionUpdate, onNewChatReady }: ChatInterfaceProps = {}) {
-  const { messages, isLoading, isInitializing, error, sessionId, adkSessionId, invocations, sendMessage, startNewChat } = useChat();
+  const { messages, isLoading, isInitializing, error, sessionId, adkSessionId, invocations, sendMessage, startNewChat, getInvocationsForSave } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationStarted = messages.length > 0 || isLoading;
 
   // Notify parent of session updates
   useEffect(() => {
     if (onSessionUpdate) {
-      onSessionUpdate(sessionId, adkSessionId, invocations);
+      onSessionUpdate(sessionId, adkSessionId, getInvocationsForSave);
     }
-  }, [sessionId, adkSessionId, invocations, onSessionUpdate]);
+  }, [sessionId, adkSessionId, messages, onSessionUpdate, getInvocationsForSave]);
 
   // Expose startNewChat to parent
   useEffect(() => {

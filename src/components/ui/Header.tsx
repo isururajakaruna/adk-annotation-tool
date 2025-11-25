@@ -9,11 +9,11 @@ import { AgentSettingsModal } from "./AgentSettingsModal";
 interface HeaderProps {
   sessionId?: string | null;
   adkSessionId?: string | null;
-  invocations?: any[];
+  getInvocationsForSave?: () => any[];
   onNewChat?: () => void;
 }
 
-export default function Header({ sessionId, adkSessionId, invocations = [], onNewChat }: HeaderProps) {
+export default function Header({ sessionId, adkSessionId, getInvocationsForSave, onNewChat }: HeaderProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [agentConfig, setAgentConfig] = useState<any>(null);
   const { currentView } = useSavedConversations();
@@ -99,8 +99,8 @@ export default function Header({ sessionId, adkSessionId, invocations = [], onNe
           )}
           
           {/* Save button (only show in chat view with active session) */}
-          {currentView === 'chat' && sessionId && (
-            <SaveConversationButton conversationId={sessionId} invocations={invocations} />
+          {currentView === 'chat' && sessionId && getInvocationsForSave && (
+            <SaveConversationButton conversationId={sessionId} getInvocationsForSave={getInvocationsForSave} />
           )}
           
           {/* Settings button (only show in chat view) */}

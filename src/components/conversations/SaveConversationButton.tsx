@@ -7,17 +7,21 @@ import { useToast } from '@/contexts/ToastContext';
 
 interface SaveConversationButtonProps {
   conversationId: string | null;
-  invocations: any[];
+  getInvocationsForSave: () => any[];
 }
 
-export default function SaveConversationButton({ conversationId, invocations }: SaveConversationButtonProps) {
+export default function SaveConversationButton({ conversationId, getInvocationsForSave }: SaveConversationButtonProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const { refreshSavedConversations } = useSavedConversations();
   const { showToast } = useToast();
 
   const handleSave = async () => {
-    if (!conversationId || isSaving || invocations.length === 0) return;
+    if (!conversationId || isSaving) return;
+    
+    // Get invocations with all annotations
+    const invocations = getInvocationsForSave();
+    if (invocations.length === 0) return;
 
     setIsSaving(true);
     
@@ -50,7 +54,7 @@ export default function SaveConversationButton({ conversationId, invocations }: 
     }
   };
 
-  if (!conversationId || invocations.length === 0) {
+  if (!conversationId || getInvocationsForSave().length === 0) {
     return null;
   }
 

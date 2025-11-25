@@ -9,11 +9,11 @@ interface MainLayoutProps {
   children: React.ReactNode;
   sessionId?: string | null;
   adkSessionId?: string | null;
-  invocations?: any[];
+  getInvocationsForSave?: () => any[];
   onNewChat?: () => void;
 }
 
-export default function MainLayout({ children, sessionId, adkSessionId, invocations, onNewChat }: MainLayoutProps) {
+export default function MainLayout({ children, sessionId, adkSessionId, getInvocationsForSave, onNewChat }: MainLayoutProps) {
   const { currentView, setCurrentView } = useSavedConversations();
 
   return (
@@ -27,7 +27,7 @@ export default function MainLayout({ children, sessionId, adkSessionId, invocati
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <Header sessionId={sessionId} adkSessionId={adkSessionId} invocations={invocations} onNewChat={onNewChat} />
+        <Header sessionId={sessionId} adkSessionId={adkSessionId} getInvocationsForSave={getInvocationsForSave} onNewChat={onNewChat} />
         
         {/* Dynamic Content (Chat or Saved Chats List) */}
         <main className="flex-1 overflow-auto">

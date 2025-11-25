@@ -179,6 +179,7 @@ export function useChat() {
                   timestamp: event.data.timestamp,
                   events: [], // Text messages don't have timeline events
                   rawEvent: event.data.rawEvent, // Store raw event for modal
+                  _custom_original_agent_message: event.data.content, // ALWAYS store original
                 };
                 
                 console.log("[useChat] 💬 Text message from:", event.data.author);
@@ -418,6 +419,67 @@ export function useChat() {
     }
   }, []);
 
+  // Build invocations from messages with annotations
+  const getInvocationsForSave = useCallback(() => {
+    const invocs: Invocation[] = [];
+    let currentUserMessage = "";
+    let currentAgentMessage = "";
+    let currentToolCalls: any[] = [];
+    let currentRating: number | undefined;
+    let currentFeedback: string | undefined;
+    let currentOriginalAgentMessage = "";
+    
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      
+      if (msg.role === "user") {
+        // If we have a pending agent message, save it first
+        if (currentAgentMessage && currentOriginalAgentMessage) {
+          invocs.push({
+            invocation_id: generateId(),
+            user_message: currentUserMessage,
+            agent_message: currentAgentMessage,
+            timestamp: Date.now(),
+            tool_calls: currentToolCalls,
+            _custom_rating: currentRating,
+            _custom_feedback: currentFeedback,
+            _custom_original_agent_message: currentOriginalAgentMessage,
+          });
+        }
+        
+        // Start new invocation
+        currentUserMessage = msg.content;
+        currentAgentMessage = "";
+        currentToolCalls = [];
+        currentRating = undefined;
+        currentFeedback = undefined;
+        currentOriginalAgentMessage = "";
+      } else if (msg.role === "assistant") {
+        currentAgentMessage = msg.content;
+        currentToolCalls = msg.toolCalls || [];
+        currentRating = msg._custom_rating;
+        currentFeedback = msg._custom_feedback;
+        currentOriginalAgentMessage = msg._custom_original_agent_message || msg.content;
+      }
+    }
+    
+    // Save last invocation if exists
+    if (currentUserMessage && currentAgentMessage && currentOriginalAgentMessage) {
+      invocs.push({
+        invocation_id: generateId(),
+        user_message: currentUserMessage,
+        agent_message: currentAgentMessage,
+        timestamp: Date.now(),
+        tool_calls: currentToolCalls,
+        _custom_rating: currentRating,
+        _custom_feedback: currentFeedback,
+        _custom_original_agent_message: currentOriginalAgentMessage,
+      });
+    }
+    
+    return invocs;
+  }, [messages]);
+
   return {
     messages,
     isLoading,
@@ -429,6 +491,7 @@ export function useChat() {
     sendMessage,
     clearMessages,
     startNewChat,
+    getInvocationsForSave,
   };
 }
 

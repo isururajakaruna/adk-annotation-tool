@@ -12,13 +12,17 @@ function AppContent() {
   const { currentView, viewingConversationId } = useSavedConversations();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [adkSessionId, setAdkSessionId] = useState<string | null>(null);
-  const [invocations, setInvocations] = useState<any[]>([]);
+  const [getInvocationsForSave, setGetInvocationsForSave] = useState<(() => any[]) | null>(null);
   const [newChatHandler, setNewChatHandler] = useState<(() => void) | null>(null);
 
-  const handleSessionUpdate = (newSessionId: string | null, newAdkSessionId: string | null, newInvocations: any[]) => {
+  const handleSessionUpdate = (
+    newSessionId: string | null, 
+    newAdkSessionId: string | null, 
+    getInvocationsFunc: () => any[]
+  ) => {
     setSessionId(newSessionId);
     setAdkSessionId(newAdkSessionId);
-    setInvocations(newInvocations);
+    setGetInvocationsForSave(() => getInvocationsFunc);
   };
 
   const handleNewChatReady = (handler: () => void) => {
@@ -49,7 +53,7 @@ function AppContent() {
     <MainLayout 
       sessionId={currentView === 'chat' ? sessionId : null}
       adkSessionId={currentView === 'chat' ? adkSessionId : null}
-      invocations={invocations}
+      getInvocationsForSave={getInvocationsForSave || undefined}
       onNewChat={newChatHandler || undefined}
     >
       {renderContent()}
