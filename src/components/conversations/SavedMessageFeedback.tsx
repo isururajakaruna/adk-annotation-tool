@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Star, MessageSquare, X } from 'lucide-react';
+import { Star, MessageSquare, Edit } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SavedMessageFeedbackProps {
   conversationId: string;
@@ -10,6 +11,7 @@ interface SavedMessageFeedbackProps {
   existingComment?: string;  // Will be _custom_feedback
   onUpdate?: () => void;
   hasToolCalls?: boolean;
+  onEditClick?: () => void;
 }
 
 export function SavedMessageFeedback({
@@ -19,6 +21,7 @@ export function SavedMessageFeedback({
   existingComment,
   onUpdate,
   hasToolCalls = false,
+  onEditClick,
 }: SavedMessageFeedbackProps) {
   const [rating, setRating] = useState<number | undefined>(existingRating);
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
@@ -77,9 +80,10 @@ export function SavedMessageFeedback({
   };
 
   return (
-    <div className={`mt-2 ${hasToolCalls ? 'ml-0' : ''}`}>
-      {/* 5-Star Rating */}
-      <div className="flex items-center gap-2">
+    <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
+      {/* Rating and action buttons */}
+      <div className="flex items-center justify-between">
+        {/* 5-star rating */}
         <div className="flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((star) => {
             const isActive = rating && star <= rating;
@@ -92,101 +96,58 @@ export function SavedMessageFeedback({
                 onMouseEnter={() => setHoveredStar(star)}
                 onMouseLeave={() => setHoveredStar(null)}
                 disabled={isSaving}
-                className={`
-                  p-1 transition-all
-                  ${isSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                `}
-                title={`${star} star${star > 1 ? 's' : ''}`}
+                className="p-1 transition-colors"
               >
                 <Star
-                  size={20}
-                  className={`
-                    transition-all
-                    ${isActive || isHovered
+                  className={`w-4 h-4 ${
+                    isActive || isHovered
                       ? 'fill-yellow-400 text-yellow-400'
                       : 'text-gray-300 dark:text-gray-600'
-                    }
-                    ${isHovered && 'scale-110'}
-                  `}
+                  }`}
                 />
               </button>
             );
           })}
         </div>
-
-        {rating && (
-          <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
-            {rating} / 5
-          </span>
-        )}
-
-        <button
-          onClick={() => setIsCommentOpen(!isCommentOpen)}
-          className={`
-            p-2 rounded-lg transition-all ml-2
-            ${comment || isCommentOpen
-              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-              : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500'
-            }
-          `}
-          title="Add comment"
-        >
-          <MessageSquare size={16} />
-        </button>
-
-        {(rating || comment) && (
+        
+        {/* Action buttons */}
+        <div className="flex items-center gap-1">
           <button
-            onClick={async () => {
-              setRating(undefined);
-              setComment('');
-              setHoveredStar(null);
-              await fetch('/api/conversations/feedback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  conversationId,
-                  invocationId,
-                  rating: undefined,
-                  feedback: undefined,
-                }),
-              });
-              if (onUpdate) onUpdate();
-            }}
-            className="ml-2 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            onClick={() => setIsCommentOpen(!isCommentOpen)}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
+              isCommentOpen && "bg-gray-100 dark:bg-gray-800"
+            )}
+            title="Add comment"
           >
-            Clear
+            <MessageSquare className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           </button>
-        )}
-      </div>
-
-      {/* Comment textarea */}
-      {isCommentOpen && (
-        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 animate-fade-in">
-          <div className="flex items-start justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Add Feedback Comment
-            </label>
+          {onEditClick && (
             <button
-              onClick={() => setIsCommentOpen(false)}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              onClick={onEditClick}
+              className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title="Edit response"
             >
-              <X size={16} />
+              <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
-          </div>
-          
+          )}
+        </div>
+      </div>
+      
+      {/* Comment input */}
+      {isCommentOpen && (
+        <div className="space-y-2">
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="What could be improved? What was good?"
-            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            rows={3}
+            placeholder="Add your feedback..."
+            className="w-full min-h-[80px] p-2 border rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
-          
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2">
             <button
               onClick={handleCommentSave}
               disabled={isSaving}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm"
+              className="px-3 py-1 text-xs bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : 'Save Comment'}
             </button>
@@ -195,18 +156,24 @@ export function SavedMessageFeedback({
                 setComment(existingComment || '');
                 setIsCommentOpen(false);
               }}
-              className="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              className="px-3 py-1 text-xs bg-gray-300 dark:bg-gray-700 rounded hover:bg-gray-400 dark:hover:bg-gray-600"
             >
               Cancel
             </button>
           </div>
         </div>
       )}
-
-      {/* Show existing comment if not editing */}
-      {comment && !isCommentOpen && (
-        <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-sm text-gray-700 dark:text-gray-300">
-          <span className="font-medium text-blue-600 dark:text-blue-400">Feedback:</span> {comment}
+      
+      {/* Display saved comment */}
+      {!isCommentOpen && comment && (
+        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-start gap-2">
+            <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs font-medium text-blue-900 dark:text-blue-300 mb-1">Your Feedback:</p>
+              <p className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap">{comment}</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

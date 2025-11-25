@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EditableMessage } from './EditableMessage';
 import { SavedMessageFeedback } from './SavedMessageFeedback';
 import { ToolCallModal } from '../chat/ToolCallModal';
+import { EventTimeline } from '../chat/EventTimeline';
 import { Invocation, ToolCall } from '@/types/chat';
 
 export function SavedConversationView() {
@@ -217,60 +218,82 @@ export function SavedConversationView() {
                 )}
 
                 {/* Agent response with tool calls, editing and feedback */}
-                {inv.agent_message && (
+                {(inv.agent_message || (inv.events && inv.events.length > 0)) && (
                   <div className="flex justify-start items-start gap-3 w-full">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                       <Bot size={18} className="text-gray-600 dark:text-gray-300" />
                     </div>
                     
-                    <div className="flex-1 flex flex-col">
-                      {/* Tool Call Badges - Above the message */}
-                      {inv.tool_calls && inv.tool_calls.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {inv.tool_calls.map((toolCall, idx) => {
-                            // Convert saved tool call format to ToolCall format for modal
-                            const toolCallForModal: ToolCall = {
-                              id: `${inv.invocation_id}-tool-${idx}`,
-                              name: toolCall.name,
-                              args: toolCall.args,
-                              result: toolCall.result,
-                              status: toolCall.result ? 'success' : 'pending',
-                            };
-
-                            return (
-                              <button
-                                key={`${inv.invocation_id}-tool-${idx}`}
-                                onClick={() => setSelectedToolCall(toolCallForModal)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors text-sm font-medium border border-purple-200 dark:border-purple-800 cursor-pointer"
-                              >
-                                <Wrench size={14} />
-                                <span>{toolCall.name}</span>
-                              </button>
-                            );
-                          })}
+                    <div className="flex-1 flex flex-col max-w-[80%]">
+                      {/* Agent name header - outside the card */}
+                      {inv.author && (
+                        <div className="text-[10px] font-semibold text-muted-foreground mb-2 px-2">
+                          {inv.author}
                         </div>
                       )}
-                      
-                      {/* Editable message */}
-                      <EditableMessage
-                        message={inv.agent_message}
-                        invocationId={inv.invocation_id}
-                        onSave={(newMessage) => handleSaveEdit(inv.invocation_id, newMessage)}
-                        onEditingChange={(isEditing) => {
-                          setEditingInvocationId(isEditing ? inv.invocation_id : null);
-                        }}
-                      />
-                      
-                      {/* Feedback component - hidden when editing */}
-                      {viewingConversationId && editingInvocationId !== inv.invocation_id && (
-                        <SavedMessageFeedback
-                          conversationId={viewingConversationId}
-                          invocationId={inv.invocation_id}
-                          existingRating={inv._custom_rating}
-                          existingComment={inv._custom_feedback}
-                          onUpdate={fetchConversation}
-                          hasToolCalls={inv.tool_calls && inv.tool_calls.length > 0}
-                        />
+
+                      {/* Event Timeline - separate card */}
+                      {inv.events && inv.events.length > 0 && (
+                        <div className="mb-3 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <EventTimeline events={inv.events} />
+                        </div>
+                      )}
+
+                      {/* Message content card */}
+                      {inv.agent_message && (
+                        <div className="rounded-2xl px-4 pt-2 pb-3 shadow-sm bg-card border border-border">
+                          {/* Tool Call Badges - Above the message (legacy format) */}
+                          {inv.tool_calls && inv.tool_calls.length > 0 && !inv.events && (
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {inv.tool_calls.map((toolCall, idx) => {
+                                // Convert saved tool call format to ToolCall format for modal
+                                const toolCallForModal: ToolCall = {
+                                  id: `${inv.invocation_id}-tool-${idx}`,
+                                  name: toolCall.name,
+                                  args: toolCall.args,
+                                  result: toolCall.result,
+                                  status: toolCall.result ? 'success' : 'pending',
+                                };
+
+                                return (
+                                  <button
+                                    key={`${inv.invocation_id}-tool-${idx}`}
+                                    onClick={() => setSelectedToolCall(toolCallForModal)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors text-sm font-medium border border-purple-200 dark:border-purple-800 cursor-pointer"
+                                  >
+                                    <Wrench size={14} />
+                                    <span>{toolCall.name}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          
+                          {/* Editable message */}
+                          <EditableMessage
+                            message={inv.agent_message}
+                            originalMessage={inv._custom_original_agent_message}
+                            invocationId={inv.invocation_id}
+                            isEditing={editingInvocationId === inv.invocation_id}
+                            onSave={(newMessage) => handleSaveEdit(inv.invocation_id, newMessage)}
+                            onEditingChange={(isEditing) => {
+                              setEditingInvocationId(isEditing ? inv.invocation_id : null);
+                            }}
+                          />
+                          
+                          {/* Feedback component - always visible when not editing */}
+                          {viewingConversationId && editingInvocationId !== inv.invocation_id && (
+                            <SavedMessageFeedback
+                              conversationId={viewingConversationId}
+                              invocationId={inv.invocation_id}
+                              existingRating={inv._custom_rating}
+                              existingComment={inv._custom_feedback}
+                              onUpdate={fetchConversation}
+                              hasToolCalls={inv.tool_calls && inv.tool_calls.length > 0}
+                              onEditClick={() => setEditingInvocationId(inv.invocation_id)}
+                            />
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

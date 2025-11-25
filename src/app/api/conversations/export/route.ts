@@ -58,50 +58,47 @@ export async function POST(req: NextRequest) {
       const content = await fs.readFile(filePath, "utf-8");
       const data = JSON.parse(content);
 
+      // Data is an array of invocations
+      const invocations = Array.isArray(data) ? data : (data.invocations || []);
+
       // Convert each invocation to an eval case
-      for (const invocation of data.invocations) {
-        const evalCase: any = {
-          eval_id: `case_${generateShortId()}`,
-          conversation: [
-            {
-              invocation_id: invocation.invocation_id,
-              user_content: {
-                parts: [
-                  {
-                    text: invocation.user_message,
-                  },
-                ],
-                role: "user",
+      for (const invocation of invocations) {
+        const conversationEntry: any = {
+          invocation_id: invocation.invocation_id,
+          user_content: {
+            parts: [
+              {
+                text: invocation.user_message,
               },
-              final_response: {
-                parts: [
-                  {
-                    text: invocation.agent_message,
-                  },
-                ],
-                role: "model",
+            ],
+            role: "user",
+          },
+          final_response: {
+            parts: [
+              {
+                text: invocation.agent_message,
               },
-              intermediate_data: {},
-            },
-          ],
+            ],
+            role: "model",
+          },
         };
 
-        // Add custom fields for annotations
+        // Add custom fields for annotations (at conversation entry level)
         if (invocation._custom_rating !== undefined) {
-          evalCase.conversation[0]._custom_rating = invocation._custom_rating;
+          conversationEntry._custom_rating = invocation._custom_rating;
         }
         if (invocation._custom_feedback) {
-          evalCase.conversation[0]._custom_feedback = invocation._custom_feedback;
+          conversationEntry._custom_feedback = invocation._custom_feedback;
         }
         if (invocation._custom_original_agent_message) {
-          evalCase.conversation[0]._custom_original_agent_message =
+          conversationEntry._custom_original_agent_message =
             invocation._custom_original_agent_message;
         }
 
-        // Add tool calls if present
+        // Add tool calls as intermediate_data if present
         if (invocation.tool_calls && invocation.tool_calls.length > 0) {
-          evalCase.conversation[0].intermediate_data.invocation_events = invocation.tool_calls.map(
-            (tc: any, idx: number) => ({
+          conversationEntry.intermediate_data = {
+            invocation_events: invocation.tool_calls.map((tc: any, idx: number) => ({
               author: "agent",
               content: {
                 parts: [
@@ -115,9 +112,14 @@ export async function POST(req: NextRequest) {
                 ],
                 role: "model",
               },
-            })
-          );
+            })),
+          };
         }
+
+        const evalCase = {
+          eval_id: `case${generateShortId()}`,
+          conversation: [conversationEntry],
+        };
 
         evalCases.push(evalCase);
       }

@@ -73,6 +73,8 @@ export interface Invocation {
   _custom_feedback?: string;
   _custom_original_agent_message: string; // ALWAYS populated with original agent response
   tool_calls?: ToolCallRecord[];
+  events?: AgentEvent[]; // Timeline events (thinking, tool calls, tool responses)
+  author?: string; // Agent name
 }
 
 export interface ToolCallRecord {

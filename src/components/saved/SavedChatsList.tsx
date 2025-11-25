@@ -16,6 +16,7 @@ export default function SavedChatsList() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isExportingAll, setIsExportingAll] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -101,9 +102,31 @@ export default function SavedChatsList() {
     setDeleteConfirmId(null);
   };
 
-  const handleExportAllAsEvalset = async () => {
-    if (savedConversations.length === 0) {
-      showToast('error', 'No conversations to export');
+  const handleToggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === sortedConversations.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedConversations.map((c) => c.id)));
+    }
+  };
+
+  const handleExportSelected = async () => {
+    const idsToExport = Array.from(selectedIds);
+    
+    if (idsToExport.length === 0) {
+      showToast('error', 'No conversations selected');
       return;
     }
 
@@ -112,7 +135,7 @@ export default function SavedChatsList() {
       const response = await fetch('/api/conversations/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationIds: [] }), // Empty array = export all
+        body: JSON.stringify({ conversationIds: idsToExport }),
       });
 
       if (!response.ok) throw new Error('Failed to export conversations');
@@ -133,12 +156,13 @@ export default function SavedChatsList() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showToast('success', `Exported ${result.count} conversation(s) as evalset`);
+        showToast('success', `Exported ${result.count} invocation(s) as evalset`);
+        setSelectedIds(new Set()); // Clear selection after export
       } else {
         throw new Error(result.error || 'Export failed');
       }
     } catch (error) {
-      console.error('Export all error:', error);
+      console.error('Export selected error:', error);
       showToast('error', 'Failed to export conversations');
     } finally {
       setIsExportingAll(false);
@@ -158,12 +182,32 @@ export default function SavedChatsList() {
         <div className="max-w-7xl mx-auto p-6">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Saved Conversations
-            </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {savedConversations.length} {savedConversations.length === 1 ? 'conversation' : 'conversations'} saved
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  Saved Conversations
+                </h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {savedConversations.length} {savedConversations.length === 1 ? 'conversation' : 'conversations'} saved
+                  {selectedIds.size > 0 && (
+                    <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
+                      ({selectedIds.size} selected)
+                    </span>
+                  )}
+                </p>
+              </div>
+              {sortedConversations.length > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === sortedConversations.length && sortedConversations.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Select All</span>
+                </label>
+              )}
+            </div>
           </div>
 
           {/* Search, Sort, and Export */}
@@ -189,10 +233,10 @@ export default function SavedChatsList() {
             </select>
 
             <button
-              onClick={handleExportAllAsEvalset}
-              disabled={isExportingAll || savedConversations.length === 0}
+              onClick={handleExportSelected}
+              disabled={isExportingAll || selectedIds.size === 0}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
-              title="Export all conversations as ADK evalset format"
+              title={selectedIds.size > 0 ? `Export ${selectedIds.size} selected conversation(s) as ADK evalset` : "Select conversations to export"}
             >
               {isExportingAll ? (
                 <>
@@ -202,7 +246,7 @@ export default function SavedChatsList() {
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  <span>Export All as Evalset</span>
+                  <span>Export as Evalset {selectedIds.size > 0 && `(${selectedIds.size})`}</span>
                 </>
               )}
             </button>
@@ -232,6 +276,8 @@ export default function SavedChatsList() {
                   timestamp={conversation.timestamp}
                   messageCount={conversation.invocationCount}
                   isLoading={loadingId === conversation.id}
+                  isSelected={selectedIds.has(conversation.id)}
+                  onToggleSelect={() => handleToggleSelection(conversation.id)}
                   onView={() => handleView(conversation.id)}
                   onExport={() => handleExport(conversation.id)}
                   onDelete={() => handleDeleteClick(conversation.id)}

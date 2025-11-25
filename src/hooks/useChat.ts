@@ -428,6 +428,8 @@ export function useChat() {
     let currentRating: number | undefined;
     let currentFeedback: string | undefined;
     let currentOriginalAgentMessage = "";
+    let currentEvents: AgentEvent[] = [];
+    let currentAuthor: string | undefined;
     
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i];
@@ -444,6 +446,8 @@ export function useChat() {
             _custom_rating: currentRating,
             _custom_feedback: currentFeedback,
             _custom_original_agent_message: currentOriginalAgentMessage,
+            events: currentEvents,
+            author: currentAuthor,
           });
         }
         
@@ -454,26 +458,43 @@ export function useChat() {
         currentRating = undefined;
         currentFeedback = undefined;
         currentOriginalAgentMessage = "";
+        currentEvents = [];
+        currentAuthor = undefined;
       } else if (msg.role === "assistant") {
-        currentAgentMessage = msg.content;
-        currentToolCalls = msg.toolCalls || [];
-        currentRating = msg._custom_rating;
-        currentFeedback = msg._custom_feedback;
-        currentOriginalAgentMessage = msg._custom_original_agent_message || msg.content;
+        // Collect text content if available
+        if (msg.content) {
+          currentAgentMessage = msg.content;
+          currentRating = msg._custom_rating;
+          currentFeedback = msg._custom_feedback;
+          currentOriginalAgentMessage = msg._custom_original_agent_message || msg.content;
+          currentAuthor = msg.author;
+        }
+        
+        // Collect events (thinking, tool calls, tool responses)
+        if (msg.events && msg.events.length > 0) {
+          currentEvents = [...currentEvents, ...msg.events];
+        }
+        
+        // Collect tool calls from old format
+        if (msg.toolCalls) {
+          currentToolCalls = [...currentToolCalls, ...msg.toolCalls];
+        }
       }
     }
     
     // Save last invocation if exists
-    if (currentUserMessage && currentAgentMessage && currentOriginalAgentMessage) {
+    if (currentUserMessage && (currentAgentMessage || currentEvents.length > 0)) {
       invocs.push({
         invocation_id: generateId(),
         user_message: currentUserMessage,
-        agent_message: currentAgentMessage,
+        agent_message: currentAgentMessage || "",
         timestamp: Date.now(),
         tool_calls: currentToolCalls,
         _custom_rating: currentRating,
         _custom_feedback: currentFeedback,
-        _custom_original_agent_message: currentOriginalAgentMessage,
+        _custom_original_agent_message: currentOriginalAgentMessage || currentAgentMessage || "",
+        events: currentEvents,
+        author: currentAuthor,
       });
     }
     
