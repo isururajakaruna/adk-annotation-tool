@@ -1,7 +1,7 @@
 {
   "name": "adk-annotation",
   "version": "1.0.0",
-  "description": "ADK Annotation UI - Direct Agent Engine Communication",
+  "description": "Feedback Workbench - Direct Agent Engine Communication",
   "private": true,
   "scripts": {
     "dev": "node start-dev.js",

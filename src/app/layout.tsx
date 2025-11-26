@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ADK Annotation UI",
+  title: "Feedback Workbench",
   description: "Direct Agent Engine Communication for Annotation Tasks",
 };
 

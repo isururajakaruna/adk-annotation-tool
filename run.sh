@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# ADK Annotation UI - Run Script
+# Feedback Workbench - Run Script
 
-echo "🚀 Starting ADK Annotation UI..."
+echo "🚀 Starting Feedback Workbench..."
 echo ""
 
 # Check if .env file exists

@@ -44,7 +44,7 @@ export default function Header({ sessionId, adkSessionId, getInvocationsForSave,
           </div>
           <div>
             <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              ADK Annotation UI
+              Feedback Workbench
             </h1>
           </div>
         </div>

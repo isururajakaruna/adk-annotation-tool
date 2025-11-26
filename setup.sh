@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# ADK Annotation UI - Setup Script
+# Feedback Workbench - Setup Script
 
-echo "🔧 Setting up ADK Annotation UI..."
+echo "🔧 Setting up Feedback Workbench..."
 echo ""
 
 # Check Node.js version

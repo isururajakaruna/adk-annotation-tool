@@ -1,6 +1,6 @@
-# ADK Annotation UI
+# Feedback Workbench
 
-A Next.js application for direct communication with Google Agent Engine (Vertex AI Reasoning Engine) for annotation tasks.
+A Next.js application for direct communication with Google Agent Engine (Vertex AI Reasoning Engine) for feedback and annotation tasks.
 
 ## Features
 
