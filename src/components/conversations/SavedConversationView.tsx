@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, User, Bot, Download, Wrench } from 'lucide-react';
 import { useSavedConversations } from '@/contexts/SavedConversationsContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -11,8 +12,13 @@ import { ToolCallModal } from '../chat/ToolCallModal';
 import { EventTimeline } from '../chat/EventTimeline';
 import { Invocation, ToolCall } from '@/types/chat';
 
-export function SavedConversationView() {
-  const { viewingConversationId, setViewingConversation, refreshSavedConversations } = useSavedConversations();
+interface SavedConversationViewProps {
+  conversationId: string;
+}
+
+export function SavedConversationView({ conversationId }: SavedConversationViewProps) {
+  const router = useRouter();
+  const { refreshSavedConversations } = useSavedConversations();
   const { showToast } = useToast();
   const [invocations, setInvocations] = useState<Invocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,11 +27,11 @@ export function SavedConversationView() {
   const [selectedToolCall, setSelectedToolCall] = useState<ToolCall | null>(null);
 
   const fetchConversation = useCallback(async () => {
-    if (!viewingConversationId) return;
+    if (!conversationId) return;
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/conversations/saved/${viewingConversationId}`);
+      const response = await fetch(`/api/conversations/saved/${conversationId}`);
       const data = await response.json();
       
       if (data.invocations) {
@@ -37,19 +43,19 @@ export function SavedConversationView() {
     } finally {
       setLoading(false);
     }
-  }, [viewingConversationId, showToast]);
+  }, [conversationId, showToast]);
 
   useEffect(() => {
-    if (viewingConversationId) {
+    if (conversationId) {
       fetchConversation();
     }
-  }, [viewingConversationId, fetchConversation]);
+  }, [conversationId, fetchConversation]);
 
   const handleSaveEdit = async (invocationId: string, newMessage: string) => {
-    if (!viewingConversationId) return;
+    if (!conversationId) return;
 
     try {
-      const response = await fetch(`/api/conversations/saved/${viewingConversationId}/edit`, {
+      const response = await fetch(`/api/conversations/saved/${conversationId}/edit`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -80,10 +86,10 @@ export function SavedConversationView() {
   };
 
   const handleDownload = async () => {
-    if (!viewingConversationId) return;
+    if (!conversationId) return;
 
     try {
-      const response = await fetch(`/api/conversations/saved/${viewingConversationId}/raw`);
+      const response = await fetch(`/api/conversations/saved/${conversationId}/raw`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch conversation');
@@ -96,7 +102,7 @@ export function SavedConversationView() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${viewingConversationId}.json`;
+      a.download = `${conversationId}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -114,12 +120,12 @@ export function SavedConversationView() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!viewingConversationId) return;
+    if (!conversationId) return;
 
     setShowDeleteConfirm(false);
 
     try {
-      const response = await fetch(`/api/conversations/saved/${viewingConversationId}`, {
+      const response = await fetch(`/api/conversations/saved/${conversationId}`, {
         method: 'DELETE',
       });
 
@@ -127,7 +133,7 @@ export function SavedConversationView() {
 
       if (data.success) {
         await refreshSavedConversations();
-        setViewingConversation(null);
+        router.push('/saved');
         showToast('success', 'Conversation deleted');
       } else {
         showToast('error', `Failed to delete: ${data.error}`);
@@ -142,11 +148,7 @@ export function SavedConversationView() {
     setShowDeleteConfirm(false);
   };
 
-  const handleBackToChat = () => {
-    setViewingConversation(null);
-  };
-
-  if (!viewingConversationId) {
+  if (!conversationId) {
     return null;
   }
 
@@ -156,7 +158,7 @@ export function SavedConversationView() {
       <div className="flex-shrink-0 sticky top-0 z-10 bg-white dark:bg-gray-900 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3">
           <button
-            onClick={handleBackToChat}
+            onClick={() => router.push('/saved')}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title="Back to list"
           >
@@ -167,7 +169,7 @@ export function SavedConversationView() {
               Saved Conversation
             </h2>
             <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
-              {viewingConversationId}
+              {conversationId}
             </p>
           </div>
         </div>
@@ -282,9 +284,9 @@ export function SavedConversationView() {
                           />
                           
                           {/* Feedback component - always visible when not editing */}
-                          {viewingConversationId && editingInvocationId !== inv.invocation_id && (
+                          {conversationId && editingInvocationId !== inv.invocation_id && (
                             <SavedMessageFeedback
-                              conversationId={viewingConversationId}
+                              conversationId={conversationId}
                               invocationId={inv.invocation_id}
                               existingRating={inv._custom_rating}
                               existingComment={inv._custom_feedback}

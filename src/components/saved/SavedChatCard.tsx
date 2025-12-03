@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Eye, Download, Trash2, MessageSquare, Calendar, CheckSquare } from "lucide-react";
 
 interface SavedChatCardProps {
@@ -10,7 +11,6 @@ interface SavedChatCardProps {
   messageCount: number;
   isLoading?: boolean;
   isSelected?: boolean;
-  onView: () => void;
   onExport: () => void;
   onDelete: () => void;
   onToggleSelect?: () => void;
@@ -23,7 +23,6 @@ export default function SavedChatCard({
   messageCount,
   isLoading = false,
   isSelected = false,
-  onView,
   onExport,
   onDelete,
   onToggleSelect,
@@ -86,14 +85,16 @@ export default function SavedChatCard({
 
       {/* Actions */}
       <div className="flex gap-2">
-        <button
-          onClick={onView}
-          disabled={isLoading}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+        <Link
+          href={`/saved/${id}`}
+          className={`
+            flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm
+            ${isLoading ? 'opacity-50 pointer-events-none' : ''}
+          `}
         >
           <Eye size={16} />
           <span>View</span>
-        </button>
+        </Link>
         <button
           onClick={onExport}
           disabled={isLoading}

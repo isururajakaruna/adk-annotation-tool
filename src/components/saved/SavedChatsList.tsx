@@ -8,7 +8,7 @@ import SavedChatCard from "./SavedChatCard";
 import { Search, Loader2, Download } from "lucide-react";
 
 export default function SavedChatsList() {
-  const { savedConversations, fetchSavedConversations, setViewingConversation } = useSavedConversations();
+  const { savedConversations, fetchSavedConversations } = useSavedConversations();
   const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc'>('date-desc');
@@ -37,10 +37,6 @@ export default function SavedChatsList() {
   const sortedConversations = [...filteredConversations].sort((a, b) => {
     return sortBy === 'date-desc' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp;
   });
-
-  const handleView = (id: string) => {
-    setViewingConversation(id);
-  };
 
   const handleExport = async (id: string) => {
     setLoadingId(id);
@@ -278,7 +274,6 @@ export default function SavedChatsList() {
                   isLoading={loadingId === conversation.id}
                   isSelected={selectedIds.has(conversation.id)}
                   onToggleSelect={() => handleToggleSelection(conversation.id)}
-                  onView={() => handleView(conversation.id)}
                   onExport={() => handleExport(conversation.id)}
                   onDelete={() => handleDeleteClick(conversation.id)}
                 />

@@ -1,19 +1,19 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MessageSquare, FolderOpen } from "lucide-react";
 
-interface PermanentSidebarProps {
-  activeView: 'chat' | 'saved';
-  onNavigate: (view: 'chat' | 'saved') => void;
-}
+export default function PermanentSidebar() {
+  const pathname = usePathname();
+  const activeView = pathname.startsWith('/saved') ? 'saved' : 'chat';
 
-export default function PermanentSidebar({ activeView, onNavigate }: PermanentSidebarProps) {
   return (
     <div className="w-16 bg-gray-900 dark:bg-gray-950 flex flex-col items-center py-4 border-r border-gray-800">
       {/* Chat Icon */}
-      <button
-        onClick={() => onNavigate('chat')}
+      <Link
+        href="/"
         className={`
           w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-all group relative
           ${activeView === 'chat' 
@@ -29,11 +29,11 @@ export default function PermanentSidebar({ activeView, onNavigate }: PermanentSi
         <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
           Chat
         </span>
-      </button>
+      </Link>
 
       {/* Saved Chats Icon */}
-      <button
-        onClick={() => onNavigate('saved')}
+      <Link
+        href="/saved"
         className={`
           w-12 h-12 rounded-lg flex items-center justify-center transition-all group relative
           ${activeView === 'saved' 
@@ -49,7 +49,7 @@ export default function PermanentSidebar({ activeView, onNavigate }: PermanentSi
         <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
           Saved Chats
         </span>
-      </button>
+      </Link>
     </div>
   );
 }
