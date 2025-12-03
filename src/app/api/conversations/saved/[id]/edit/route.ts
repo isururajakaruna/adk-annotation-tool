@@ -47,8 +47,8 @@ export async function PUT(
     }
 
     // Save original message if not already saved
-    if (!invocations[invocationIndex]._custom_original) {
-      invocations[invocationIndex]._custom_original = invocations[invocationIndex].agent_message;
+    if (!invocations[invocationIndex]._custom_original_agent_message) {
+      invocations[invocationIndex]._custom_original_agent_message = invocations[invocationIndex].agent_message;
     }
 
     // Update the message

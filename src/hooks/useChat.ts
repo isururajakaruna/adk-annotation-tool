@@ -331,10 +331,12 @@ export function useChat() {
                 
                 // Save invocation with all accumulated agent messages
                 if (currentInvocationRef.current) {
+                  const agentMessage = currentInvocationRef.current.agent_message || "";
                   const invocation: Invocation = {
                     invocation_id: generateId(),
                     user_message: currentInvocationRef.current.user_message,
-                    agent_message: currentInvocationRef.current.agent_message || "",
+                    agent_message: agentMessage,
+                    _custom_original_agent_message: agentMessage, // Store original for comparison
                     timestamp: Date.now(),
                     tool_calls: currentInvocationRef.current.tool_calls,
                   };

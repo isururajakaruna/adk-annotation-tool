@@ -206,7 +206,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                             pre: ({node, ...props}) => (
                               <pre className="bg-gray-100 dark:bg-black dark:text-gray-100 p-3 rounded-lg overflow-x-auto my-2" {...props} />
                             ),
-                            code: ({node, inline, ...props}) => 
+                            code: ({node, inline, ...props}: any) => 
                               inline ? (
                                 <code className="bg-gray-100 dark:bg-black dark:text-gray-100 px-1 py-0.5 rounded text-sm font-mono" {...props} />
                               ) : (

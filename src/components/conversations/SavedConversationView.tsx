@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Trash2, User, Bot, Download, Wrench } from 'lucide-react';
 import { useSavedConversations } from '@/contexts/SavedConversationsContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -20,13 +20,7 @@ export function SavedConversationView() {
   const [editingInvocationId, setEditingInvocationId] = useState<string | null>(null);
   const [selectedToolCall, setSelectedToolCall] = useState<ToolCall | null>(null);
 
-  useEffect(() => {
-    if (viewingConversationId) {
-      fetchConversation();
-    }
-  }, [viewingConversationId]);
-
-  const fetchConversation = async () => {
+  const fetchConversation = useCallback(async () => {
     if (!viewingConversationId) return;
 
     setLoading(true);
@@ -43,7 +37,13 @@ export function SavedConversationView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [viewingConversationId, showToast]);
+
+  useEffect(() => {
+    if (viewingConversationId) {
+      fetchConversation();
+    }
+  }, [viewingConversationId, fetchConversation]);
 
   const handleSaveEdit = async (invocationId: string, newMessage: string) => {
     if (!viewingConversationId) return;
