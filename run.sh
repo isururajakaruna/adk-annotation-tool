@@ -29,15 +29,17 @@ if [ ! -d "node_modules" ]; then
     echo ""
 fi
 
-# Check gcloud authentication
+# Check gcloud authentication (informational only)
 echo "🔐 Checking Google Cloud authentication..."
-if gcloud auth application-default print-access-token > /dev/null 2>&1; then
-    echo "   ✅ Authenticated with Google Cloud"
+if command -v gcloud &> /dev/null; then
+    if gcloud auth application-default print-access-token > /dev/null 2>&1; then
+        echo "   ✅ Authenticated with Google Cloud (gcloud)"
+    else
+        echo "   ℹ️  No gcloud credentials found"
+        echo "   Will attempt to use Application Default Credentials (ADC)"
+    fi
 else
-    echo "   ⚠️  Not authenticated with Google Cloud"
-    echo "   Run: gcloud auth application-default login"
-    echo ""
-    read -p "Press Enter to continue anyway or Ctrl+C to exit..."
+    echo "   ℹ️  gcloud not installed - using Application Default Credentials (ADC)"
 fi
 
 echo ""

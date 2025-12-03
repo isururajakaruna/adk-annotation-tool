@@ -7,9 +7,12 @@ A Next.js application for direct communication with Google Agent Engine (Vertex 
 - **Direct Agent Engine Communication**: Communicates directly with Google Agent Engine via HTTP SSE
 - **No External Dependencies**: Does not use CopilotKit or @ag-ui/client
 - **Live Chat Interface**: Real-time streaming responses from the agent
-- **Modern UI**: Beautiful interface with the same theme as agent_ui
+- **Modern UI**: Beautiful, responsive interface with Tailwind CSS
 - **Tool Call Support**: Displays tool calls and results in an organized manner
 - **Thinking Display**: Shows agent reasoning when available
+- **Annotation & Feedback**: Inline editing, rating, and commenting on agent responses
+- **Session Management**: Persistent ADK sessions with context preservation
+- **Export Capabilities**: Export conversations as ADK-compatible evalset files
 
 ## Architecture
 
@@ -24,10 +27,28 @@ Google Agent Engine (Vertex AI Reasoning Engine)
 ## Prerequisites
 
 1. **Node.js**: Version 18 or higher
-2. **Google Cloud CLI**: Install and authenticate with gcloud
-3. **Agent Engine Deployment**: A deployed Reasoning Engine on Google Cloud
+2. **Agent Engine Deployment**: A deployed Reasoning Engine on Google Cloud
+3. **Google Cloud Authentication**: One of the following:
+   - **Local Development**: Google Cloud CLI with `gcloud auth application-default login`
+   - **GCP VM/Workbench**: Service account with appropriate permissions (auto-configured)
+   - **Production**: Application Default Credentials (ADC) configured
 
-## Setup
+## Quick Start
+
+Use the setup and run scripts for automated setup:
+
+```bash
+# Setup: Install dependencies and build production bundle
+./setup.sh
+
+# Run in production mode (default)
+./run.sh
+
+# Run in development mode
+./run.sh --dev
+```
+
+## Manual Setup
 
 ### 1. Install Dependencies
 
@@ -46,19 +67,31 @@ cp .env.example .env
 Edit `.env` and add your Agent Engine configuration:
 
 ```env
-AGENT_ENGINE_PROJECT_ID=your-gcp-project-id
+AGENT_ENGINE_PROJECT_ID=255766800726
 AGENT_ENGINE_LOCATION=us-central1
 AGENT_ENGINE_RESOURCE_ID=your-reasoning-engine-id
+PORT=3001
 ```
 
-### 3. Authenticate with Google Cloud
+### 3. Authenticate with Google Cloud (if needed)
 
+**For local development:**
 ```bash
 gcloud auth application-default login
 ```
 
-### 4. Run the Development Server
+**For GCP VM or Vertex AI Workbench:**
+No authentication needed - service account credentials are automatically available.
 
+### 4. Build and Run
+
+**Production mode:**
+```bash
+npm run build
+npm start
+```
+
+**Development mode:**
 ```bash
 npm run dev
 ```
@@ -186,23 +219,12 @@ npm run build
 npm start
 ```
 
-## Comparison with agent_ui
-
-| Feature | agent_ui | adk_annotation |
-|---------|----------|----------------|
-| CopilotKit | ✅ Yes | ❌ No |
-| @ag-ui/client | ✅ Yes | ❌ No |
-| Agent Communication | Via CopilotKit | Direct HTTP SSE |
-| Frontend-Backend | CopilotKit Runtime | Custom SSE API |
-| Theme & Styling | Tailwind + shadcn/ui | Same theme |
-| Tool Call Display | ✅ Yes | ✅ Yes |
-| Thinking Display | ✅ Yes | ✅ Yes |
-
 ## Troubleshooting
 
 ### Authentication Issues
 
-If you get authentication errors:
+**For local development:**
+If you get authentication errors, re-authenticate with Google Cloud:
 
 ```bash
 # Re-authenticate with Google Cloud
@@ -211,6 +233,11 @@ gcloud auth application-default login
 # Verify your credentials
 gcloud auth list
 ```
+
+**For GCP VM or Vertex AI Workbench:**
+Ensure the service account attached to your VM/Workbench has the following permissions:
+- `aiplatform.reasoningEngines.query`
+- `aiplatform.reasoningEngines.get`
 
 ### Connection Issues
 
@@ -222,10 +249,10 @@ curl http://localhost:3001/api/health
 
 ### Port Already in Use
 
-If port 3001 is already in use, modify the dev script in `package.json`:
+If port 3001 is already in use, change the `PORT` in your `.env` file:
 
-```json
-"dev": "next dev -p 3002"
+```env
+PORT=3002
 ```
 
 ## License

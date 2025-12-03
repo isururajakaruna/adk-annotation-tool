@@ -28,17 +28,9 @@ if ! command -v npm &> /dev/null; then
 fi
 echo "   ✅ npm $(npm -v)"
 
-# Check gcloud
+# Check gcloud (optional - needed for local development only)
 if ! command -v gcloud &> /dev/null; then
-    echo "⚠️  gcloud CLI is not installed"
-    echo "   Install from: https://cloud.google.com/sdk/docs/install"
-    echo "   This is required for Agent Engine authentication"
-    echo ""
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
+    echo "   ℹ️  gcloud CLI not found (optional for local development)"
 else
     echo "   ✅ gcloud CLI installed"
 fi
@@ -78,12 +70,18 @@ fi
 
 echo ""
 echo "🔐 Google Cloud Authentication..."
-if gcloud auth application-default print-access-token > /dev/null 2>&1; then
-    echo "   ✅ Already authenticated with Google Cloud"
+if command -v gcloud &> /dev/null; then
+    if gcloud auth application-default print-access-token > /dev/null 2>&1; then
+        echo "   ✅ Already authenticated with Google Cloud"
+    else
+        echo "   ℹ️  Not authenticated with gcloud"
+        echo "   For local development, run: gcloud auth application-default login"
+        echo "   For GCP VM/Workbench: Service account credentials will be used automatically"
+    fi
 else
-    echo "   ⚠️  Not authenticated with Google Cloud"
-    echo "   Run the following command to authenticate:"
-    echo "   $ gcloud auth application-default login"
+    echo "   ℹ️  gcloud not installed"
+    echo "   For local development: Install gcloud and run 'gcloud auth application-default login'"
+    echo "   For GCP VM/Workbench: No action needed - service account credentials are auto-configured"
 fi
 
 echo ""
@@ -91,7 +89,9 @@ echo "✅ Setup complete!"
 echo ""
 echo "Next steps:"
 echo "1. Update .env file with your Agent Engine configuration"
-echo "2. Authenticate with Google Cloud: gcloud auth application-default login"
+echo "2. Authentication (choose one):"
+echo "   - Local dev: gcloud auth application-default login"
+echo "   - GCP VM/Workbench: No action needed (uses service account)"
 echo "3. Run the production server: ./run.sh"
 echo "   OR run in development mode: ./run.sh --dev"
 echo ""
