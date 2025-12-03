@@ -1,5 +1,44 @@
 # Docker Setup Guide
 
+## Quick Start Examples
+
+### Example 1: Local Development with gcloud
+```bash
+# Authenticate with gcloud
+gcloud auth application-default login
+
+# Build image
+./docker-build.sh
+
+# Run with gcloud credentials mounted
+./docker-run.sh --mount-gcloud
+
+# Check logs
+docker logs -f feedback-workbench-app
+```
+
+### Example 2: GCP VM/Workbench (No gcloud needed)
+```bash
+# Build image
+./docker-build.sh
+
+# Run (service account credentials are auto-available)
+./docker-run.sh
+
+# Verify
+curl http://localhost:3001/api/health
+```
+
+### Example 3: Custom Configuration
+```bash
+# Run with custom settings
+./docker-run.sh \
+  --mount-gcloud \
+  --env NODE_ENV=production \
+  --env DEBUG=true \
+  --tag v1.0.0
+```
+
 ## How Environment Variables Work
 
 ### Build Time vs Runtime
@@ -59,11 +98,27 @@
 - Final image size: ~200MB
 
 ### 2. Run Phase
+
+**Basic run:**
 ```bash
 ./docker-run.sh
 ```
+
+**With gcloud authentication:**
+```bash
+./docker-run.sh --mount-gcloud
+```
+
+**With additional environment variables:**
+```bash
+./docker-run.sh --env DEBUG=true --env LOG_LEVEL=info
+```
+
+**What it does:**
 - Checks for `.env` on host (creates from template if missing)
 - Passes environment variables via `--env-file .env`
+- Optionally mounts gcloud credentials (with `--mount-gcloud`)
+- Validates gcloud authentication if mounting credentials
 - Mounts `conversations_saved/` directory
 - Starts container with `node server.js`
 
@@ -104,12 +159,36 @@ To persist logs, add:
 
 ## Authentication in Docker
 
-### Local Development
-If running on your local machine:
-1. Run `gcloud auth application-default login`
-2. Mount gcloud config into container:
+### Local Development (Recommended Method)
+
+**Using the docker-run.sh script:**
 ```bash
--v ~/.config/gcloud:/home/nextjs/.config/gcloud:ro
+# 1. Authenticate with gcloud
+gcloud auth application-default login
+
+# 2. Run container with credentials mounted
+./docker-run.sh --mount-gcloud
+```
+
+This automatically:
+- Validates your gcloud authentication
+- Mounts your credentials read-only into the container
+- Sets `GOOGLE_APPLICATION_CREDENTIALS` environment variable
+
+**Manual method:**
+```bash
+# 1. Authenticate
+gcloud auth application-default login
+
+# 2. Run with manual mount
+docker run -d \
+  --name feedback-workbench-app \
+  -p 3001:3001 \
+  --env-file .env \
+  -v ~/.config/gcloud:/home/nextjs/.config/gcloud:ro \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/home/nextjs/.config/gcloud/application_default_credentials.json \
+  -v $(pwd)/conversations_saved:/app/conversations_saved \
+  feedback-workbench:latest
 ```
 
 ### GCP VM/Workbench
@@ -135,6 +214,7 @@ GOOGLE_APPLICATION_CREDENTIALS=/app/service-account-key.json
 - Ensure `.env` exists on the host machine
 - Check `docker logs feedback-workbench-app` for startup errors
 - Verify variables with: `docker exec feedback-workbench-app env | grep AGENT_ENGINE`
+- Add additional variables with: `./docker-run.sh --env YOUR_VAR=value`
 
 ### Saved conversations not persisting
 - Check volume mount is correct: `docker inspect feedback-workbench-app | grep Mounts -A 20`
@@ -148,7 +228,10 @@ GOOGLE_APPLICATION_CREDENTIALS=/app/service-account-key.json
 
 ### Authentication failures
 - Verify credentials in `.env`
+- **For local dev**: Use `./docker-run.sh --mount-gcloud` to mount gcloud credentials
 - Check gcloud auth status: `gcloud auth list`
+- Verify gcloud application-default credentials: `gcloud auth application-default print-access-token`
+- Check if credentials are mounted: `docker exec feedback-workbench-app ls -la /home/nextjs/.config/gcloud`
 - For service account: verify key file is mounted correctly
 - Check container logs: `docker logs feedback-workbench-app`
 

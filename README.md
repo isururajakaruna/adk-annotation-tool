@@ -113,11 +113,22 @@ The application will be available at `http://localhost:PORT` (default: 3001)
 # 1. Build the Docker image
 ./docker-build.sh
 
-# 2. Run the container
+# 2. Run the container (basic)
 ./docker-run.sh
+
+# OR with gcloud authentication mounted
+./docker-run.sh --mount-gcloud
+
+# OR with additional environment variables
+./docker-run.sh --env NODE_ENV=production --env DEBUG=true
 ```
 
 The application will be available at `http://localhost:3001` (or your configured PORT).
+
+**Options:**
+- `--mount-gcloud` - Mount your local gcloud credentials into the container (for local development)
+- `--env KEY=VALUE` - Add additional environment variables (can be used multiple times)
+- `--tag TAG` - Use a specific image tag (default: latest)
 
 ### Manual Docker Commands
 
@@ -217,14 +228,33 @@ Runs the Docker container with proper configuration.
 
 **Usage:**
 ```bash
+# Basic run
 ./docker-run.sh
+
+# With gcloud credentials mounted
+./docker-run.sh --mount-gcloud
+
+# With additional environment variables
+./docker-run.sh --env DEBUG=true --env LOG_LEVEL=verbose
+
+# With custom image tag
+./docker-run.sh --tag v1.0.0
+
+# Combined options
+./docker-run.sh --mount-gcloud --env NODE_ENV=production --tag latest
 ```
+
+**Options:**
+- `--mount-gcloud` - Mount gcloud credentials from `~/.config/gcloud` (requires gcloud auth)
+- `--env KEY=VALUE` - Add environment variable (can be repeated)
+- `--tag TAG` - Use specific image tag
 
 **Features:**
 - Automatically stops and removes existing container
-- Mounts `conversations_saved` directory
+- Mounts `conversations_saved` directory for persistence
 - Reads port from `.env` file
 - Creates `.env` from template if missing
+- Validates gcloud auth when `--mount-gcloud` is used
 - Provides useful management commands
 
 ## How It Works
