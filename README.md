@@ -101,6 +101,132 @@ npm run dev
 
 The application will be available at `http://localhost:PORT` (default: 3001)
 
+## Docker Deployment
+
+### Prerequisites
+- Docker installed on your system
+- `.env` file configured with your Agent Engine credentials
+
+### Quick Start with Docker
+
+```bash
+# 1. Build the Docker image
+./docker-build.sh
+
+# 2. Run the container
+./docker-run.sh
+```
+
+The application will be available at `http://localhost:3001` (or your configured PORT).
+
+### Manual Docker Commands
+
+**Build the image:**
+```bash
+docker build -t feedback-workbench:latest .
+```
+
+**Run the container:**
+```bash
+docker run -d \
+  --name feedback-workbench-app \
+  -p 3001:3001 \
+  --env-file .env \
+  -v $(pwd)/conversations_saved:/app/conversations_saved \
+  feedback-workbench:latest
+```
+
+**Useful Docker commands:**
+```bash
+# View logs
+docker logs -f feedback-workbench-app
+
+# Stop container
+docker stop feedback-workbench-app
+
+# Restart container
+docker restart feedback-workbench-app
+
+# Remove container
+docker rm -f feedback-workbench-app
+```
+
+### Docker Notes
+
+- **Persistent Data**: The `conversations_saved` directory is mounted as a volume to persist saved conversations
+- **Environment Variables**: The container uses the `.env` file for configuration
+- **Port Mapping**: Adjust the port mapping (`-p HOST:CONTAINER`) if you change the PORT in `.env`
+- **Authentication**: For GCP authentication, ensure your `.env` has the correct credentials or mount your gcloud config
+
+## Scripts Reference
+
+### Setup Script (`./setup.sh`)
+Automated setup script that:
+- Checks Node.js version (18+ required)
+- Installs npm dependencies
+- Builds production bundle
+- Creates `.env` from template if not exists
+- Checks gcloud authentication status
+
+**Usage:**
+```bash
+./setup.sh
+```
+
+### Run Script (`./run.sh`)
+Starts the application in production or development mode.
+
+**Usage:**
+```bash
+# Production mode (default)
+./run.sh
+
+# Development mode
+./run.sh --dev
+# or
+./run.sh -d
+```
+
+**Features:**
+- Automatically detects port from `.env`
+- Checks for production build (builds if missing)
+- Validates gcloud authentication
+- Creates `.env` if missing
+
+### Docker Build Script (`./docker-build.sh`)
+Builds a Docker image for the application.
+
+**Usage:**
+```bash
+# Build with default tag (latest)
+./docker-build.sh
+
+# Build with custom tag
+./docker-build.sh --tag v1.0.0
+# or
+./docker-build.sh -t v1.0.0
+```
+
+**Output:**
+- Image name: `feedback-workbench:latest` (or custom tag)
+- Optimized multi-stage build
+- Minimal production image (~200MB)
+
+### Docker Run Script (`./docker-run.sh`)
+Runs the Docker container with proper configuration.
+
+**Usage:**
+```bash
+./docker-run.sh
+```
+
+**Features:**
+- Automatically stops and removes existing container
+- Mounts `conversations_saved` directory
+- Reads port from `.env` file
+- Creates `.env` from template if missing
+- Provides useful management commands
+
 ## How It Works
 
 1. **Frontend** sends user messages to Next.js API routes
