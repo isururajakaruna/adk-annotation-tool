@@ -101,6 +101,28 @@ npm run dev
 
 The application will be available at `http://localhost:PORT` (default: 3001)
 
+## Deployment Options
+
+### Local Docker
+
+Best for development and testing with persistent storage.
+
+**Prerequisites:**
+- Docker installed on your system
+- `.env` file configured with your Agent Engine credentials
+
+### Google Cloud Run
+
+For production serverless deployment. **Important:** Cloud Run requires modifications for persistent storage since it has an ephemeral filesystem.
+
+📖 **See [CLOUD_RUN.md](./CLOUD_RUN.md) for complete deployment guide**
+
+**Key considerations:**
+- ⚠️ Saved conversations need Cloud Storage integration (local files are lost on restart)
+- ✅ Authentication works automatically with service accounts
+- ✅ Auto-scales and cost-effective
+- ✅ No server management required
+
 ## Docker Deployment
 
 ### Prerequisites
