@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { Invocation } from '@/types/chat';
+import { getStorageProvider } from '@/lib/storage';
 
 /**
  * GET /api/conversations/saved/[id]
@@ -13,22 +11,20 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const savedDir = path.join(process.cwd(), 'conversations_saved');
-    const filepath = path.join(savedDir, `${id}.json`);
+    const storage = getStorageProvider();
 
-    if (!fs.existsSync(filepath)) {
+    const invocations = await storage.load(id);
+    return NextResponse.json({ invocations });
+  } catch (error: any) {
+    console.error('[GetSavedConversation] Error:', error);
+    
+    if (error.message?.includes('not found')) {
       return NextResponse.json(
         { success: false, error: 'Conversation not found' },
         { status: 404 }
       );
     }
-
-    const content = fs.readFileSync(filepath, 'utf-8');
-    const invocations: Invocation[] = JSON.parse(content);
-
-    return NextResponse.json({ invocations });
-  } catch (error) {
-    console.error('[GetSavedConversation] Error:', error);
+    
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -46,17 +42,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
-    const savedDir = path.join(process.cwd(), 'conversations_saved');
-    const filepath = path.join(savedDir, `${id}.json`);
+    const storage = getStorageProvider();
 
-    if (!fs.existsSync(filepath)) {
-      return NextResponse.json(
-        { success: false, error: 'Conversation not found' },
-        { status: 404 }
-      );
-    }
-
-    fs.unlinkSync(filepath);
+    await storage.delete(id);
+    console.log(`[DeleteSavedConversation] Deleted: ${id}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.7.0",
     "clsx": "^2.1.0",
     "dotenv": "^16.4.5",
     "google-auth-library": "^9.6.0",

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { getStorageProvider } from '@/lib/storage';
 import { Invocation } from '@/types/chat';
 
 /**
@@ -23,19 +22,10 @@ export async function PUT(
       );
     }
 
-    const savedDir = path.join(process.cwd(), 'conversations_saved');
-    const filepath = path.join(savedDir, `${id}.json`);
-
-    if (!fs.existsSync(filepath)) {
-      return NextResponse.json(
-        { success: false, error: 'Conversation not found' },
-        { status: 404 }
-      );
-    }
+    const storage = getStorageProvider();
 
     // Read conversation
-    const content = fs.readFileSync(filepath, 'utf-8');
-    const invocations: Invocation[] = JSON.parse(content);
+    const invocations: Invocation[] = await storage.load(id);
 
     // Find and update the invocation
     const invocationIndex = invocations.findIndex(inv => inv.invocation_id === invocationId);
@@ -55,11 +45,19 @@ export async function PUT(
     invocations[invocationIndex].agent_message = newAgentMessage;
 
     // Save updated conversation
-    fs.writeFileSync(filepath, JSON.stringify(invocations, null, 2), 'utf-8');
+    await storage.save(id, invocations);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[EditConversation] Error:', error);
+    
+    if (error.message?.includes('not found')) {
+      return NextResponse.json(
+        { success: false, error: 'Conversation not found' },
+        { status: 404 }
+      );
+    }
+    
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

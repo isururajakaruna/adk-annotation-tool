@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
-
-const CONVERSATIONS_DIR = path.join(process.cwd(), "conversations_saved");
+import { getStorageProvider } from '@/lib/storage';
 
 /**
  * Export conversations in evalset format (ADK evaluation format)
@@ -12,38 +9,27 @@ const CONVERSATIONS_DIR = path.join(process.cwd(), "conversations_saved");
 export async function POST(req: NextRequest) {
   try {
     const { conversationIds } = await req.json();
+    const storage = getStorageProvider();
 
-    // Ensure conversations directory exists
-    try {
-      await fs.access(CONVERSATIONS_DIR);
-    } catch {
-      return NextResponse.json(
-        { success: false, error: "No saved conversations found" },
-        { status: 404 }
-      );
-    }
+    // Get all conversations
+    const allConversations = await storage.list();
 
-    // Get all conversation files
-    const files = await fs.readdir(CONVERSATIONS_DIR);
-    const jsonFiles = files.filter((f) => f.endsWith(".json"));
-
-    if (jsonFiles.length === 0) {
+    if (allConversations.length === 0) {
       return NextResponse.json(
         { success: false, error: "No conversations to export" },
         { status: 404 }
       );
     }
 
-    // Filter files if specific IDs provided
-    let filesToExport = jsonFiles;
+    // Filter conversations if specific IDs provided
+    let conversationsToExport = allConversations;
     if (conversationIds && conversationIds.length > 0) {
-      filesToExport = jsonFiles.filter((file) => {
-        const fileId = file.replace("conversation_", "").replace(".json", "");
-        return conversationIds.includes(fileId);
-      });
+      conversationsToExport = allConversations.filter((conv) => 
+        conversationIds.includes(conv.id)
+      );
     }
 
-    if (filesToExport.length === 0) {
+    if (conversationsToExport.length === 0) {
       return NextResponse.json(
         { success: false, error: "No matching conversations found" },
         { status: 404 }
@@ -53,13 +39,9 @@ export async function POST(req: NextRequest) {
     // Build evalset structure
     const evalCases = [];
 
-    for (const file of filesToExport) {
-      const filePath = path.join(CONVERSATIONS_DIR, file);
-      const content = await fs.readFile(filePath, "utf-8");
-      const data = JSON.parse(content);
-
-      // Data is an array of invocations
-      const invocations = Array.isArray(data) ? data : (data.invocations || []);
+    for (const conversation of conversationsToExport) {
+      // Load full conversation data
+      const invocations = await storage.load(conversation.id);
 
       // Convert each invocation to an eval case
       for (const invocation of invocations) {

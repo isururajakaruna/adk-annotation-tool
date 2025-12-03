@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { getStorageProvider } from '@/lib/storage';
 
 /**
  * POST /api/conversations/save
- * Save a conversation from conversations/ to conversations_saved/
+ * Save a conversation using configured storage provider (GCS or local)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -27,29 +26,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const savedDir = path.join(process.cwd(), 'conversations_saved');
-    
-    // Ensure saved directory exists
-    if (!fs.existsSync(savedDir)) {
-      fs.mkdirSync(savedDir, { recursive: true });
-    }
-
-    // Use conversationId as filename (will overwrite if exists)
-    const destFilename = `${conversationId}.json`;
-    const destPath = path.join(savedDir, destFilename);
+    const storage = getStorageProvider();
     
     // Check if updating existing conversation
-    const isUpdate = fs.existsSync(destPath);
+    const isUpdate = await storage.exists(conversationId);
 
     // Save invocations (overwrite if exists)
-    fs.writeFileSync(destPath, JSON.stringify(invocations, null, 2), 'utf-8');
+    await storage.save(conversationId, invocations);
 
-    console.log(`[SaveConversation] ${isUpdate ? 'Updated' : 'Saved'} ${conversationId} as ${destFilename}`);
+    console.log(`[SaveConversation] ${isUpdate ? 'Updated' : 'Saved'} ${conversationId}`);
 
     return NextResponse.json({
       success: true,
-      savedAs: destFilename,
-      path: destPath,
+      savedAs: `${conversationId}.json`,
       isUpdate: isUpdate
     });
   } catch (error) {

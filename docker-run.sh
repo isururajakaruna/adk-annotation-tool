@@ -7,12 +7,21 @@ IMAGE_TAG="latest"
 CONTAINER_NAME="feedback-workbench-app"
 MOUNT_GCLOUD=false
 ADDITIONAL_ENV_VARS=""
+USE_LOCAL_STORAGE=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
     --mount-gcloud)
       MOUNT_GCLOUD=true
+      shift
+      ;;
+    --local-storage)
+      USE_LOCAL_STORAGE=true
+      shift
+      ;;
+    --gcs)
+      USE_LOCAL_STORAGE=false
       shift
       ;;
     --env)
@@ -25,10 +34,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $0 [--mount-gcloud] [--env KEY=VALUE] [--tag TAG]"
+      echo "Usage: $0 [OPTIONS]"
       echo ""
       echo "Options:"
       echo "  --mount-gcloud        Mount gcloud credentials into container"
+      echo "  --local-storage       Use local filesystem storage (default: GCS)"
+      echo "  --gcs                 Use Google Cloud Storage (default)"
       echo "  --env KEY=VALUE       Add additional environment variable"
       echo "  --tag TAG            Use specific image tag (default: latest)"
       exit 1
@@ -100,6 +111,11 @@ fi
 echo "🚀 Starting container: ${CONTAINER_NAME}"
 echo "   Image: ${FULL_IMAGE_NAME}"
 echo "   Port: ${PORT}"
+if [ "$USE_LOCAL_STORAGE" = true ]; then
+  echo "   Storage: Local filesystem"
+else
+  echo "   Storage: Google Cloud Storage (default)"
+fi
 if [ "$MOUNT_GCLOUD" = true ]; then
   echo "   Auth: gcloud credentials mounted"
 fi
@@ -113,6 +129,11 @@ DOCKER_RUN_CMD="docker run -d \
   --name ${CONTAINER_NAME} \
   -p ${PORT}:${PORT} \
   --env-file .env"
+
+# Override storage setting if specified on command line
+if [ "$USE_LOCAL_STORAGE" = true ]; then
+  DOCKER_RUN_CMD="$DOCKER_RUN_CMD -e USE_CLOUD_STORAGE=false"
+fi
 
 # Add gcloud mount if requested
 if [ "$MOUNT_GCLOUD" = true ]; then

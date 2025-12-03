@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { getStorageProvider } from '@/lib/storage';
 
 /**
  * GET /api/conversations/saved/[id]/raw
@@ -12,22 +11,20 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const savedDir = path.join(process.cwd(), 'conversations_saved');
-    const filepath = path.join(savedDir, `${id}.json`);
+    const storage = getStorageProvider();
 
-    if (!fs.existsSync(filepath)) {
+    const data = await storage.getRaw(id);
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error('[GetRawConversation] Error:', error);
+    
+    if (error.message?.includes('not found')) {
       return NextResponse.json(
         { success: false, error: 'Conversation not found' },
         { status: 404 }
       );
     }
-
-    const content = fs.readFileSync(filepath, 'utf-8');
-    const data = JSON.parse(content);
-
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('[GetRawConversation] Error:', error);
+    
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
