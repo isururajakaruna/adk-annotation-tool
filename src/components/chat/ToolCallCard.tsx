@@ -74,3 +74,4 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
   );
 }
 
+

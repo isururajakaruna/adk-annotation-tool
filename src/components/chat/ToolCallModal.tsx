@@ -174,3 +174,4 @@ export function ToolCallModal({ isOpen, onClose, toolCall }: ToolCallModalProps)
   );
 }
 
+

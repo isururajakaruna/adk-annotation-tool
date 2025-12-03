@@ -70,3 +70,4 @@ export function ThinkingModal({ isOpen, onClose, data }: ThinkingModalProps) {
   );
 }
 
+

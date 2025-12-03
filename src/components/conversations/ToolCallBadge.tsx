@@ -71,3 +71,4 @@ export function ToolCallBadge({ toolName, args, result }: ToolCallBadgeProps) {
   );
 }
 
+

@@ -2,6 +2,12 @@
 
 # Feedback Workbench - Run Script
 
+# Parse command line arguments
+MODE="production"
+if [ "$1" == "--dev" ] || [ "$1" == "-d" ]; then
+    MODE="development"
+fi
+
 echo "🚀 Starting Feedback Workbench..."
 echo ""
 
@@ -35,11 +41,33 @@ else
 fi
 
 echo ""
-echo "🌐 Starting development server on http://localhost:3001"
-echo "   Health check: http://localhost:3001/api/health"
-echo ""
-echo "Press Ctrl+C to stop the server"
-echo ""
 
-# Start the dev server
-npm run dev
+# Start the appropriate server
+if [ "$MODE" == "development" ]; then
+    echo "🌐 Starting DEVELOPMENT server on http://localhost:3001"
+    echo "   Health check: http://localhost:3001/api/health"
+    echo ""
+    echo "Press Ctrl+C to stop the server"
+    echo ""
+    npm run dev
+else
+    # Check if production build exists
+    if [ ! -d ".next" ]; then
+        echo "⚠️  Production build not found. Running build..."
+        npm run build
+        if [ $? -ne 0 ]; then
+            echo "❌ Build failed"
+            exit 1
+        fi
+        echo ""
+    fi
+    
+    echo "🌐 Starting PRODUCTION server on http://localhost:3001"
+    echo "   Health check: http://localhost:3001/api/health"
+    echo ""
+    echo "💡 Tip: Use './run.sh --dev' to start in development mode"
+    echo ""
+    echo "Press Ctrl+C to stop the server"
+    echo ""
+    npm run start
+fi

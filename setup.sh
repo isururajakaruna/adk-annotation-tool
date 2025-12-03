@@ -54,6 +54,16 @@ fi
 echo "   ✅ Dependencies installed"
 
 echo ""
+echo "🏗️  Building production bundle..."
+npm run build
+
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed"
+    exit 1
+fi
+echo "   ✅ Production build complete"
+
+echo ""
 echo "⚙️  Setting up environment..."
 if [ ! -f .env ]; then
     cp .env.example .env
@@ -82,6 +92,6 @@ echo ""
 echo "Next steps:"
 echo "1. Update .env file with your Agent Engine configuration"
 echo "2. Authenticate with Google Cloud: gcloud auth application-default login"
-echo "3. Run the development server: npm run dev"
-echo "   OR use the convenience script: ./run.sh"
+echo "3. Run the production server: ./run.sh"
+echo "   OR run in development mode: ./run.sh --dev"
 echo ""

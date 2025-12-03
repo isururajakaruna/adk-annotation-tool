@@ -54,3 +54,4 @@ export default function PermanentSidebar({ activeView, onNavigate }: PermanentSi
   );
 }
 
+

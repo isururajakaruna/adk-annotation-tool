@@ -16,3 +16,4 @@ export function ThinkingIndicator({ message = "Processing" }: ThinkingIndicatorP
   );
 }
 
+
