@@ -99,7 +99,7 @@ npm start
 npm run dev
 ```
 
-The application will be available at [http://localhost:3001](http://localhost:3001)
+The application will be available at `http://localhost:PORT` (default: 3001)
 
 ## How It Works
 
@@ -127,7 +127,7 @@ The application will be available at [http://localhost:3001](http://localhost:30
 
 ### Health Check
 
-Visit `http://localhost:3001/api/health` to verify Agent Engine connectivity.
+Visit `http://localhost:PORT/api/health` to verify Agent Engine connectivity (replace `PORT` with your configured port, default: 3001).
 
 ## Troubleshooting
 
@@ -154,15 +154,19 @@ Ensure the service account attached to your VM/Workbench has the following permi
 Check if Agent Engine is accessible:
 
 ```bash
-curl http://localhost:3001/api/health
+curl http://localhost:PORT/api/health
 ```
 
-### Port Already in Use
+(Replace `PORT` with your configured port from `.env`, default is 3001)
 
-If port 3001 is already in use, change the `PORT` in your `.env` file:
+### Port Configuration
+
+To use a different port, change the `PORT` in your `.env` file:
 
 ```env
 PORT=3002
 ```
+
+The application will automatically use the configured port.
 
 

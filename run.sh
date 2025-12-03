@@ -22,6 +22,12 @@ if [ ! -f .env ]; then
     read -p "Press Enter to continue or Ctrl+C to exit..."
 fi
 
+# Load PORT from .env (default to 3001 if not set)
+if [ -f .env ]; then
+    export $(grep "^PORT=" .env | xargs)
+fi
+PORT=${PORT:-3001}
+
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then
     echo "📦 Installing dependencies..."
@@ -46,8 +52,8 @@ echo ""
 
 # Start the appropriate server
 if [ "$MODE" == "development" ]; then
-    echo "🌐 Starting DEVELOPMENT server on http://localhost:3001"
-    echo "   Health check: http://localhost:3001/api/health"
+    echo "🌐 Starting DEVELOPMENT server on http://localhost:$PORT"
+    echo "   Health check: http://localhost:$PORT/api/health"
     echo ""
     echo "Press Ctrl+C to stop the server"
     echo ""
@@ -64,8 +70,8 @@ else
         echo ""
     fi
     
-    echo "🌐 Starting PRODUCTION server on http://localhost:3001"
-    echo "   Health check: http://localhost:3001/api/health"
+    echo "🌐 Starting PRODUCTION server on http://localhost:$PORT"
+    echo "   Health check: http://localhost:$PORT/api/health"
     echo ""
     echo "💡 Tip: Use './run.sh --dev' to start in development mode"
     echo ""
