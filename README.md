@@ -4,15 +4,15 @@ A Next.js application for direct communication with Google Agent Engine (Vertex 
 
 ## Features
 
-- **Direct Agent Engine Communication**: Communicates directly with Google Agent Engine via HTTP SSE
-- **No External Dependencies**: Does not use CopilotKit or @ag-ui/client
-- **Live Chat Interface**: Real-time streaming responses from the agent
-- **Modern UI**: Beautiful, responsive interface with Tailwind CSS
-- **Tool Call Support**: Displays tool calls and results in an organized manner
-- **Thinking Display**: Shows agent reasoning when available
-- **Annotation & Feedback**: Inline editing, rating, and commenting on agent responses
-- **Session Management**: Persistent ADK sessions with context preservation
-- **Export Capabilities**: Export conversations as ADK-compatible evalset files
+- **Live Chat Interface**: Real-time streaming responses with Server-Sent Events (SSE)
+- **Annotation & Feedback**: Inline editing, 5-star rating, and commenting on agent responses
+- **Session Management**: Persistent ADK sessions with automatic context preservation
+- **Tool Call Visualization**: Clear display of function calls and results
+- **Thinking Display**: View agent reasoning and internal thought processes
+- **Conversation Management**: Save, review, and annotate past conversations
+- **Evalset Export**: Export annotated conversations as ADK-compatible evalset files for model evaluation
+- **Diff Viewer**: Compare original and edited agent responses with syntax highlighting
+- **Modern UI**: Responsive interface built with Next.js, React, and Tailwind CSS
 
 ## Architecture
 
@@ -67,11 +67,14 @@ cp .env.example .env
 Edit `.env` and add your Agent Engine configuration:
 
 ```env
-AGENT_ENGINE_PROJECT_ID=255766800726
+AGENT_ENGINE_PROJECT_ID=your-gcp-project-number
 AGENT_ENGINE_LOCATION=us-central1
 AGENT_ENGINE_RESOURCE_ID=your-reasoning-engine-id
 PORT=3001
+NEXT_PUBLIC_APP_NAME="Feedback Workbench"
 ```
+
+> **Note:** Use your GCP project **number** (not project ID) for `AGENT_ENGINE_PROJECT_ID`
 
 ### 3. Authenticate with Google Cloud (if needed)
 
@@ -98,126 +101,33 @@ npm run dev
 
 The application will be available at [http://localhost:3001](http://localhost:3001)
 
-## Project Structure
+## How It Works
 
-```
-adk_annotation/
-├── src/
-│   ├── app/                    # Next.js app directory
-│   │   ├── api/               # API routes
-│   │   │   ├── chat/          # Chat endpoint (SSE)
-│   │   │   └── health/        # Health check endpoint
-│   │   ├── globals.css        # Global styles
-│   │   ├── layout.tsx         # Root layout
-│   │   └── page.tsx           # Home page
-│   ├── components/            # React components
-│   │   ├── chat/             # Chat-related components
-│   │   │   ├── ChatInput.tsx
-│   │   │   ├── ChatInterface.tsx
-│   │   │   ├── MessageBubble.tsx
-│   │   │   ├── ThinkingIndicator.tsx
-│   │   │   └── ToolCallCard.tsx
-│   │   └── ui/               # Reusable UI components
-│   │       ├── Button.tsx
-│   │       └── Card.tsx
-│   ├── hooks/                # Custom React hooks
-│   │   └── useChat.ts        # Chat communication hook
-│   ├── lib/                  # Utility libraries
-│   │   ├── agentEngineClient.ts  # Agent Engine HTTP SSE client
-│   │   └── utils.ts          # Utility functions
-│   └── types/                # TypeScript type definitions
-│       └── chat.ts
-├── public/                   # Static assets
-├── .env.example             # Environment variables template
-├── next.config.mjs          # Next.js configuration
-├── tailwind.config.ts       # Tailwind CSS configuration
-├── tsconfig.json            # TypeScript configuration
-└── package.json             # Project dependencies
-```
+1. **Frontend** sends user messages to Next.js API routes
+2. **Backend** creates/manages ADK sessions and streams responses from Agent Engine
+3. **Agent Engine** processes queries and returns streaming events (messages, tool calls, thinking)
+4. **Frontend** renders responses in real-time and allows inline annotation
+5. **Conversations** can be saved, reviewed, and exported as evalset files for model evaluation
 
-## Key Components
+## Usage
 
-### Agent Engine Client (`lib/agentEngineClient.ts`)
+### Live Chat
+1. Start a new chat session
+2. Send messages to your agent
+3. View streaming responses with tool calls and thinking steps
+4. Rate responses (1-5 stars) and add comments inline
+5. Edit agent responses directly and compare with originals using the diff viewer
+6. Save annotated conversations
 
-Handles direct HTTP SSE communication with Google Agent Engine:
-- Authenticates using gcloud credentials
-- Streams responses from Agent Engine
-- Parses and yields agent events
+### Saved Conversations
+1. View all saved conversations in the sidebar
+2. Multi-select conversations for batch export
+3. Review annotations (ratings, comments, edits)
+4. Export as evalset files for ADK evaluation framework
 
-### Chat Hook (`hooks/useChat.ts`)
+### Health Check
 
-React hook for managing chat state and communication:
-- Sends messages to backend API
-- Receives and processes SSE events
-- Manages message state and loading indicators
-
-### Chat Interface (`components/chat/ChatInterface.tsx`)
-
-Main chat UI component:
-- Displays messages in a conversation view
-- Shows tool calls and thinking indicators
-- Handles user input and submission
-
-## API Endpoints
-
-### POST `/api/chat`
-
-Chat endpoint that streams agent responses via Server-Sent Events (SSE).
-
-**Request Body:**
-```json
-{
-  "message": "Your message here",
-  "userId": "user-1"
-}
-```
-
-**Response:** SSE stream with events:
-- `message`: Agent text response
-- `tool_call`: Tool invocation
-- `tool_result`: Tool execution result
-- `thinking`: Agent reasoning
-- `done`: Conversation turn completed
-- `error`: Error occurred
-
-### GET `/api/health`
-
-Health check endpoint to verify Agent Engine connectivity.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "agentEngine": {
-    "connected": true,
-    "projectId": "your-project-id",
-    "location": "us-central1",
-    "resourceId": "your-resource-id"
-  }
-}
-```
-
-## Development
-
-### Type Checking
-
-```bash
-npm run type-check
-```
-
-### Linting
-
-```bash
-npm run lint
-```
-
-### Building for Production
-
-```bash
-npm run build
-npm start
-```
+Visit `http://localhost:3001/api/health` to verify Agent Engine connectivity.
 
 ## Troubleshooting
 
@@ -255,11 +165,4 @@ If port 3001 is already in use, change the `PORT` in your `.env` file:
 PORT=3002
 ```
 
-## License
-
-Same as the parent ag-ui project.
-
-## Support
-
-For issues and questions, refer to the main ag-ui documentation or create an issue in the repository.
 
