@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { SavedConversation, Invocation } from '@/types/chat';
 
+// Force dynamic rendering (don't cache this route)
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/conversations/saved
  * List all saved conversations
@@ -10,14 +13,19 @@ import { SavedConversation, Invocation } from '@/types/chat';
 export async function GET(request: NextRequest) {
   try {
     const savedDir = path.join(process.cwd(), 'conversations_saved');
+    console.log('[ListSavedConversations] Looking in:', savedDir);
     
     // Ensure directory exists
     if (!fs.existsSync(savedDir)) {
+      console.log('[ListSavedConversations] Directory does not exist, creating it');
       fs.mkdirSync(savedDir, { recursive: true });
       return NextResponse.json({ conversations: [] });
     }
 
-    const files = fs.readdirSync(savedDir).filter(f => f.endsWith('.json'));
+    const allFiles = fs.readdirSync(savedDir);
+    console.log('[ListSavedConversations] All files:', allFiles);
+    const files = allFiles.filter(f => f.endsWith('.json'));
+    console.log('[ListSavedConversations] JSON files:', files);
     
     const conversations: SavedConversation[] = files.map(filename => {
       const filepath = path.join(savedDir, filename);

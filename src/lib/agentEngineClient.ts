@@ -5,6 +5,7 @@
  */
 
 import { AgentEngineEvent } from "@/types/chat";
+import { GoogleAuth } from 'google-auth-library';
 
 export interface AgentEngineConfig {
   projectId: string;
@@ -15,9 +16,15 @@ export interface AgentEngineConfig {
 export class AgentEngineClient {
   private config: AgentEngineConfig;
   private endpointUrl: string;
+  private auth: GoogleAuth;
 
   constructor(config: AgentEngineConfig) {
     this.config = config;
+    
+    // Initialize Google Auth
+    this.auth = new GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
     
     // Build the endpoint URL
     const agentResourceName = `projects/${config.projectId}/locations/${config.location}/reasoningEngines/${config.resourceId}`;
@@ -28,20 +35,23 @@ export class AgentEngineClient {
   }
 
   /**
-   * Get Google Cloud access token using gcloud CLI
-   * Note: In production, you should use proper service account credentials
+   * Get Google Cloud access token using Google Auth Library
+   * Works with Application Default Credentials (gcloud, service account, GCE metadata)
    */
   private async getAuthToken(): Promise<string> {
     try {
-      const { exec } = require("child_process");
-      const { promisify } = require("util");
-      const execAsync = promisify(exec);
+      const client = await this.auth.getClient();
+      const token = await client.getAccessToken();
       
-      const { stdout } = await execAsync("gcloud auth print-access-token");
-      return stdout.trim();
+      if (!token.token) {
+        throw new Error('No access token returned');
+      }
+      
+      console.log('[AgentEngineClient] Auth token obtained successfully');
+      return token.token;
     } catch (error) {
       console.error("[AgentEngineClient] Failed to get auth token:", error);
-      throw new Error("Failed to get auth token. Please run: gcloud auth application-default login");
+      throw new Error("Failed to get auth token. Please ensure Google Cloud credentials are configured.");
     }
   }
 
