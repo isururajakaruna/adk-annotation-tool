@@ -13,6 +13,7 @@ interface SaveConversationButtonProps {
 export default function SaveConversationButton({ conversationId, getInvocationsForSave }: SaveConversationButtonProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isUpdate, setIsUpdate] = useState(false);
   const { refreshSavedConversations } = useSavedConversations();
   const { showToast } = useToast();
 
@@ -35,8 +36,9 @@ export default function SaveConversationButton({ conversationId, getInvocationsF
       const data = await response.json();
 
       if (data.success) {
+        setIsUpdate(data.isUpdate || false);
         setShowSuccess(true);
-        showToast('success', 'Conversation saved successfully');
+        showToast('success', data.isUpdate ? 'Conversation updated successfully' : 'Conversation saved successfully');
         await refreshSavedConversations();
         
         setTimeout(() => {
@@ -77,7 +79,7 @@ export default function SaveConversationButton({ conversationId, getInvocationsF
       {showSuccess ? (
         <>
           <Check size={16} className="animate-pulse" />
-          <span>Saved!</span>
+          <span>{isUpdate ? 'Updated!' : 'Saved!'}</span>
         </>
       ) : (
         <>

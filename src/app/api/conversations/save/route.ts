@@ -34,26 +34,23 @@ export async function POST(request: NextRequest) {
       fs.mkdirSync(savedDir, { recursive: true });
     }
 
-    // Find next available filename (handle duplicates)
-    let destFilename = `${conversationId}.json`;
-    let destPath = path.join(savedDir, destFilename);
-    let copyNumber = 1;
+    // Use conversationId as filename (will overwrite if exists)
+    const destFilename = `${conversationId}.json`;
+    const destPath = path.join(savedDir, destFilename);
+    
+    // Check if updating existing conversation
+    const isUpdate = fs.existsSync(destPath);
 
-    while (fs.existsSync(destPath)) {
-      destFilename = `${conversationId}_copy${copyNumber}.json`;
-      destPath = path.join(savedDir, destFilename);
-      copyNumber++;
-    }
-
-    // Save invocations
+    // Save invocations (overwrite if exists)
     fs.writeFileSync(destPath, JSON.stringify(invocations, null, 2), 'utf-8');
 
-    console.log(`[SaveConversation] Saved ${conversationId} as ${destFilename}`);
+    console.log(`[SaveConversation] ${isUpdate ? 'Updated' : 'Saved'} ${conversationId} as ${destFilename}`);
 
     return NextResponse.json({
       success: true,
       savedAs: destFilename,
-      path: destPath
+      path: destPath,
+      isUpdate: isUpdate
     });
   } catch (error) {
     console.error('[SaveConversation] Error:', error);
